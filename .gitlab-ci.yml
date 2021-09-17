@@ -1,0 +1,78 @@
+stages:
+  - test
+
+# Use our custom image. See https://gitlab.com/testing-farm/images/-/tree/master/python-ci-image
+image: "quay.io/testing-farm/python-ci-image"
+
+#
+# Poetry and MyPy colors
+#
+.colors:
+  variables:
+    TERM: "xterm"
+    POETRY_ADDOPTS: "--ansi"
+    MYPY_FORCE_COLOR: "1"
+    PYTEST_ADDOPTS: "--color=yes"
+
+#
+# Some of the jobs require locale to be set, some fail with it. Those which need it can inherit this section.
+#
+.locale:
+  variables:
+    # See https://click.palletsprojects.com/en/7.x/python3/#python-3-surrogate-handling
+    # Export these for Python 3.6 - from 3.7 forward, Python is smarter when picking
+    # default locales.
+    LC_ALL: "en_US.utf8"
+    LANG: "en_US.utf8"
+
+#
+# Mark tests to run for merge requests
+#
+.merge-request:
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+
+.tests:
+  extends: [.colors, .locale, .merge-request]
+  stage: test
+  before_script:
+    - dnf -y install libxslt-devel
+  artifacts:
+    paths:
+      - coverage-report
+
+type-check:
+  extends: .tests
+  script: tox -e type-check
+
+py27-static:
+  extends: .tests
+  script: tox -e py27-static-analysis
+
+py27-unit:
+  extends: .tests
+  script: tox -e py27-unit-tests
+
+py36-static:
+  extends: .tests
+  script: tox -e py36-static-analysis
+
+py36-unit:
+  extends: .tests
+  script: tox -e py36-unit-tests
+
+py37-static:
+  extends: .tests
+  script: tox -e py37-static-analysis
+
+py37-unit:
+  extends: .tests
+  script: tox -e py37-unit-tests
+
+py38-static:
+  extends: .tests
+  script: tox -e py38-static-analysis
+
+py38-unit:
+  extends: .tests
+  script: tox -e py38-unit-tests
