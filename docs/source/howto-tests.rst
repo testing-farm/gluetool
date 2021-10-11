@@ -11,10 +11,10 @@ adhere to these rules whenever possible.
    and usable documentation, let's just discuss the change and change what must be changed.
 
 
-py.test
--------
+py.test and tox
+---------------
 
-``gluetool`` uses ``py.test`` framework for its test and tox to automate the running of the tests. If you're not
+``gluetool`` uses ``py.test`` framework for its tests and ``tox`` to automate the running of the tests. If you're not
 familiar with these tools, please see following links to get some idea:
 
 * `py.test <https://docs.pytest.org/en/latest/>`_
@@ -27,19 +27,17 @@ for your module.
 How to run tests?
 -----------------
 
-Static analysis is using coala in docker, so for full test, you need to have docker daemon running.
+You can run all tests using ``tox``.
 
-You can run all tests using ``tox``:
-
-.. code-block:: bash
-
-   tox -e py27
-
-If you want to skip coala analysis so you don't need docker, you can run
+You can test a specific env with the ``-e`` switch:
 
 .. code-block:: bash
 
-   tox -e 'py-{unit-tests,static-analysis,doctest}'
+   tox -e py27-unit-tests
+   tox -e type-check
+   tox -e 'py{27,36,37,38}-static-analysis'
+   tox -e 'py{37,38}-{static-analysis,unit-tests}'
+   tox -e 'py27-{static-analysis,unit-tests}'
 
 Tox also accept additional options:
 

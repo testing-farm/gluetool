@@ -6,12 +6,15 @@ Environment
 
 Before moving on to the actual setup, there are few important notes:
 
--  **The only supported and (sort of tested) way of installation and
-   using ``gluetool`` is a separate virtual environment!** It may be
-   possible to install ``gluetool`` directly somewhere into your system
-   but we don't recommend that, we don't use it that way, and we don't
-   know what kind of hell you might run into. Please, stick with
-   ``virtualenv``.
+-  **The only supported and (sort of tested) way of installation and using ``gluetool`` is a separate virtual
+   environment!** It may be possible to install ``gluetool`` directly somewhere into your system but we don't
+   recommend that, we don't use it that way, and we don't know what kind of hell you might run into. Please,
+   stick with a ``virtualenv``.
+
+   Since ``gluetool`` and its dependencies are managed and installed with `Poetry <https://python-poetry.org/>`_,
+   it will create a ``virtualenv`` for you. So you don't need to worry about that, but it's good to know the basics
+   about how a ``virtualenv`` works and what it's used for. If you don't have Poetry installed or if you have any
+   specific requirements, please see the `Poetry documentation <https://python-poetry.org/docs/>`_.
 
 -  The tested distributions (as in "we're using these") are either
    recent Fedora, RHEL or CentOS. You could try to install ``gluetool``
@@ -24,52 +27,47 @@ Requirements
 
 To begin digging into ``gluetool`` sources, there are few requirements:
 
--  ``virtualenv`` utility
+-  ``poetry``
 
 -  ``ansible-playbook``
 
 Installation
 ------------
 
-1. Create a virtual environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-    virtualenv -p /usr/bin/python2.7 <virtualenv-dir>
-    . <virtualenv-dir>/bin/activate
-
-2. Clone ``gluetool`` repository - your working copy
+1. Clone ``gluetool`` repository - your working copy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
     git clone github:<your username>/<your fork name>
-    cd gluetool
 
-3. Install ``gluetool``
+2. Install ``gluetool``
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
-    python setup.py develop
+    cd gluetool
+    poetry install
 
-4. (optional) Activate Bash completion
+3. (optional) Activate Bash completion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code-block:: bash
-
-   gluetool --module-path gluetool_modules/ bash-completion > gluetool-bash-completition
-   mv gluetool-bash-completition $VIRTUAL_ENV/bin/gluetool-bash-completition
-   echo "source $VIRTUAL_ENV/bin/gluetool-bash-completition" >> $VIRTUAL_ENV/bin/activate
-
-To activate bash completion immediately, source the generated file. Otherwise, it'd start working next time you'd activate your virtualenv.
+Poetry's virtualenv can be found with:
 
 .. code-block:: bash
 
-   . ./gluetool-bash-completition
+    poetry env list --full-path
 
-5. Add configuration
+We can source the generated bash completion script at the end of the ``virtualenv`` activate script.
+
+.. code-block:: bash
+
+    gluetool --module-path gluetool_modules/ bash-completion > $VIRTUAL_ENV/bin/gluetool-bash-completition
+    echo "source $VIRTUAL_ENV/bin/gluetool-bash-completition" >> $VIRTUAL_ENV/bin/activate
+
+It will start working next time you activate your virtualenv via ``poetry shell``. To activate bash completion immediately, source the generated file.
+
+4. Add configuration
 ~~~~~~~~~~~~~~~~~~~~~~
 
 ``gluetool`` looks for its configuration in a local directory (among others), in ``./.gluetool.d`` to be specific. Add
