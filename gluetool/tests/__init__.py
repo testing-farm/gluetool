@@ -1,5 +1,6 @@
 # pylint: disable=blacklisted-name
 
+import os
 import json
 
 import ruamel.yaml
@@ -102,3 +103,7 @@ def create_yaml(tmpdir, name, data):
 
 def create_json(tmpdir, name, data):
     return create_file(tmpdir, name, lambda stream: json.dump(data, stream))
+
+
+def testing_asset(*pieces):
+    return os.path.join('gluetool', 'tests', 'assets', *pieces)
