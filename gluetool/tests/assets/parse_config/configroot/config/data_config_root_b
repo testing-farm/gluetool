@@ -1,0 +1,4 @@
+[default]
+foo = pre-artifact-installation:${config_root}/pre-artifact-installation-playbooks-map.yaml,
+      pre-artifact-installation-workarounds:~/.citool.d/pre-artifact-installation-workarounds-playbooks-map.yaml,
+      post-artifact-installation:${config_root}/post-artifact-installation-playbooks-map.yaml_overwrite

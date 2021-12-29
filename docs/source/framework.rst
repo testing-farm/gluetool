@@ -83,6 +83,28 @@ Below is an example of configuration for this ``openstack`` module.
     key-name = id_rsa
     ip-pool-name = 10.8.240.0
 
+The next example shows how to reference the configuration file's parent directory:
+
+  .. code-block:: bash
+
+    $ cat ~/.gluetool.d/config/guest-setup
+    [default]
+    playbooks-map = pre-artifact-installation:${config_root}/pre-artifact-installation-playbooks-map.yaml,
+                    pre-artifact-installation-workarounds:${config_root}/pre-artifact-installation-workarounds-playbooks-map.yaml,
+                    post-artifact-installation:${config_root}/post-artifact-installation-playbooks-map.yaml
+
+`${config_root}` will be replaced by the parent directory of the directory containing the module's configuration file.
+
+In the above example, with the default module configuration directory of `/etc/gluetool.d/config`, `${config_root}` will be replaced with `/etc/gluetool.d`.
+
+It is possible and allowed to have multiple module configuration directories. The defaults are:
+
+- '/etc/gluetool.d/config'
+- '~/.gluetool.d/config'
+- './.gluetool.d/config'
+
+Each path is checked for a configuration file for the module. If one is found, it is parsed. When multiple files are found they are combined. If one file has the same key or entry as another, the later will override the former in the order they were given. The `--module-config-path` will override the default configuration paths.
+
 .. _shared-functions:
 
 Shared Functions

@@ -10,11 +10,12 @@ import logging
 import os
 import sys
 import warnings
+import configparser
+import io
 
 from functools import partial
 
 from six import iterkeys, itervalues, iteritems, ensure_str
-from six.moves import configparser
 
 import jinja2
 import mock
@@ -1034,18 +1035,47 @@ class Configurable(LoggerMixin, object):
         # type: (List[str]) -> None
 
         """
-        Parse configuration files. Uses :py:mod:`ConfigParser` for the actual parsing.
-        Updates module's configuration store with values found returned by the parser.
+        Parse configuration files. Uses :py:mod:`configparser` for the actual
+        parsing, and updates module's configuration store with values found
+        returned by `configparser`. This function also replaces `${config_root}`
+        with the path of the module config directory. This is one level up
+        (parent) from where the module configuration file is.
 
         :param list paths: List of paths to possible configuration files.
+
+        Further explanation of `${config_root}` follows:
+
+        There is a use case to reference the parent dir of where the
+        config file is. Certain modules have such configurations:
+
+        playbooks-map = ~/.citool.d/playbooks-map.yaml
+
+        To avoid hardcoding the directory, `${config_root}` can be used:
+
+        playbooks-map = ${config_root}/playbooks-map.yaml
+
+        This makes it possible to store the configuration in any location
+        that may be specified on the command line via `--module-config-path`.
+        Furthermore, it is valid to have multiple configuration files, each
+        overwriting values from the former file.
+
+        Currently (2021-11) a replace of `${config_root}` is done right after
+        reading the file and before parsing it with configparser.
+
+        We cannot use Jinja for this, as the combined config is passed to Jinja.
+        We also cannot use configparser's interpolation, as once interpolated,
+        values do not remain that way, but will be interpolated again upon the
+        next call of any of the configparser's 'read*' methods. Either will
+        result in a bug where `${config_root}` is replaced with the path of
+        another config file's parent dir. This is also the reason why
+        configparser's `read` method is not used and instead each file is read
+        one by one.
+
         """
 
         log_dict(self.debug, 'Loading configuration from following paths', paths)
 
-        parser = configparser.ConfigParser()
-        parsed_paths = parser.read(paths)
-
-        log_dict(self.debug, 'Read configuration files', parsed_paths)
+        parser = configparser.ConfigParser(interpolation=None)
 
         def _inject_value(name, names, params):
             # type: (str, Tuple[str, ...], Dict[str, Any]) -> None
@@ -1081,7 +1111,21 @@ class Configurable(LoggerMixin, object):
 
             Configurable._for_each_option(_inject_value, options)
 
+        parsed_paths = []  # type: List[str]
+
+        for path in paths:
+            if not os.access(path, os.R_OK):
+                self.debug("path '{}' not readable, skipping".format(path))  # pylint: disable=not-callable
+                continue
+            with io.open(path, encoding='utf-8', mode="r") as file_handle:
+                config_data = file_handle.read()
+            config_data = config_data.replace("${config_root}", os.path.dirname(os.path.dirname(path)))
+            parser.read_string(config_data)
+            parsed_paths.append(path)
+
         Configurable._for_each_option_group(_inject_values, self.options)
+
+        log_dict(self.debug, 'Read configuration files', parsed_paths)
 
     @classmethod
     def _create_args_parser(cls, **kwargs):
