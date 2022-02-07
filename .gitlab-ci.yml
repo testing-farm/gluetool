@@ -25,21 +25,17 @@ image: "quay.io/testing-farm/python-ci-image"
     LC_ALL: "en_US.utf8"
     LANG: "en_US.utf8"
 
-#
-# Mark tests to run for merge requests
-#
-.merge-request:
-  rules:
-    - if: $CI_MERGE_REQUEST_IID
-
 .tests:
-  extends: [.colors, .locale, .merge-request]
+  extends: [.colors, .locale]
   stage: test
   before_script:
     - dnf -y install libxslt-devel
   artifacts:
     paths:
       - coverage-report
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+    - if: '$CI_COMMIT_BRANCH == "main"'
 
 type-check:
   extends: .tests
