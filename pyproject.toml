@@ -70,11 +70,11 @@ zipp = [
   { version = "^3.5.0", python = "^3.6" }
 ]
 future = { version = "0.18.2", python = "~2.7" }
+packaging = "^20.9"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.3"
 hypothesis = "^4.57.1"
-isort = "4.3.21"
 # It is good enough to have mypy only with Python 3 - it cannot be run with Python 2 anyway.
 mypy = { version = "^0.812", python = "^3.6" }
 pylint = [
