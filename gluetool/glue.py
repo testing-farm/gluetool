@@ -742,7 +742,9 @@ class Pipeline(LoggerMixin, object):
             # to the Sentry. Therefore, adding `_safe_call` (inside `_destroy` which itself was called via
             # `_safe_call`), catching and logging the failure. After that, we simply return the "destroy failure"
             # from `_destroy`, which then causes `_for_each_module` to quit loop immediately, propagating this
-            # destroy failure even further.
+            # destroy failure even further. We do not want to continue with destroying the rest of the modules
+            # as the pipeline state is unknown and could cause external systems to react in possibly risky ways
+            # or propagate misinformation such as a test passing when it actually failed.
 
             # We get either `None` or a failure if an exception was raised by `destroy`. If it's a failure,
             # we can log it with a bit more context.
