@@ -899,7 +899,7 @@ def requests(logger=None):
 
     # Start capturing ``print`` statements - they are used to provide debug messages, therefore
     # using ``debug`` level.
-    with print_wrapper(log_fn=http_client_logger.debug):  # type: ignore  # logger.debug signature is compatible
+    with print_wrapper(log_fn=http_client_logger.debug):
         # To log responses and their content, we must take a look at ``Response`` instance
         # returned by several entry methods (``get``, ``post``, ...). To do that, we have
         # a simple wrapper function.
@@ -1296,7 +1296,7 @@ class SimplePatternMap(LoggerMixin, object):
             pattern = _render_template(pattern)
             result = _render_template(result)
 
-            log_dict(logger.debug,  # type: ignore  # logger.debug signature is compatible
+            log_dict(self.logger.debug,
                      "rendered mapping '{}'".format(pattern),
                      result)
 
@@ -1449,7 +1449,7 @@ class PatternMap(LoggerMixin, object):
             # To make mypy happy, let's collapse type of `pattern`.
             assert isinstance(pattern, six.string_types)
 
-            log_dict(logger.debug,  # type: ignore  # logger.debug signature is compatible
+            log_dict(self.logger.debug,
                      "rendered mapping '{}'".format(pattern),
                      converter_chains)
 
