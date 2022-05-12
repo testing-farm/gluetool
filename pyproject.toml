@@ -37,13 +37,18 @@ include = [
   "assets/html-log/prism.css",
   "assets/html-log/prism.js",
   "assets/html-log/semantic.min.css",
-  "assets/html-log/semantic.min.js"
+  "assets/html-log/semantic.min.js",
+  "gluetool_modules/__init__.py",
+  "gluetool_modules/bash_completion.py",
+  "gluetool_modules/dep_list.py",
+  "gluetool_modules/yaml_pipeline.py"
 ]
 
 [tool.poetry.dependencies]
 python = "~2.7 || ~3.6 || ~3.7 || ~3.8"
 beautifulsoup4 = "^4.6.3"
 colorama = "^0.3.9"
+configparser = "^4.0.2"
 docutils = "^0.14"
 enum34 = "^1.1.6"
 Jinja2 = "^2.10"
@@ -102,9 +107,9 @@ gluetool-html-log = "gluetool.html_log:main"
 [tool.poetry.plugins]
 
 [tool.poetry.plugins."gluetool.modules"]
-".bash_completion" = "gluetool.modules.bash_completion:BashCompletion"
-".dep_list" = "gluetool.modules.dep_list:DepList"
-".yaml_pipeline" = "gluetool.modules.yaml_pipeline:YAMLPipeline"
+".bash_completion" = "gluetool_modules.bash_completion:BashCompletion"
+".dep_list" = "gluetool_modules.dep_list:DepList"
+".yaml_pipeline" = "gluetool_modules.yaml_pipeline:YAMLPipeline"
 
 [build-system]
 requires = ["poetry>=1.1.3"]
