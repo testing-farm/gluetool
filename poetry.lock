@@ -137,7 +137,7 @@ python-versions = "*"
 name = "configparser"
 version = "4.0.2"
 description = "Updated configparser from Python 3.7 for Python 2.6+."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=2.6"
 
@@ -956,7 +956,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "~2.7 || ~3.6 || ~3.7 || ~3.8"
-content-hash = "d7320c41d708ed9a90a5487d9d3b5719d7b28f0b361b6209b879dd54c4bc4c5e"
+content-hash = "565fb443920ae5cddfcdcff3a929e44245fe338866091f373765dc81aae107a2"
 
 [metadata.files]
 alabaster = [
