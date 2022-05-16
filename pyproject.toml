@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gluetool"
-version = "1.27.1"
+version = "1.27.2"
 description = "Python framework for constructing command-line pipelines."
 authors = [
   "Miloš Prchlik <mprchlik@redhat.com>",
@@ -53,6 +53,7 @@ docutils = "^0.14"
 enum34 = "^1.1.6"
 Jinja2 = "^2.10"
 lxml = "^4.2.4"
+markupsafe = "1.1.1"
 mock = "^3.0.5"
 raven = "^6.9.0"
 requests = "2.26.0"
@@ -76,6 +77,7 @@ zipp = [
 ]
 future = { version = "0.18.2", python = "~2.7" }
 packaging = "^20.9"
+MarkupSafe = "1.1.1"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.3"
