@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gluetool"
-version = "1.27.2"
+version = "1.27.3"
 description = "Python framework for constructing command-line pipelines."
 authors = [
   "Miloš Prchlik <mprchlik@redhat.com>",
