@@ -200,7 +200,7 @@ class Gluetool(object):
         pass
 
     @overload  # noqa
-    def _handle_failure_core(self, failure, do_quit):
+    def _handle_failure_core(self, failure, do_quit):  # noqa
         # type: (gluetool.glue.Failure, Literal[False]) -> None
 
         pass
@@ -248,7 +248,7 @@ class Gluetool(object):
         pass
 
     @overload  # noqa
-    def _handle_failure(self, failure, do_quit=False):
+    def _handle_failure(self, failure, do_quit=False):  # noqa
         # type: (gluetool.glue.Failure, Literal[False]) -> None
 
         pass
