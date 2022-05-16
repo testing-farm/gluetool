@@ -1291,7 +1291,7 @@ class Configurable(LoggerMixin, object):
         pass
 
     @overload  # noqa
-    def option(self, *names):
+    def option(self, *names):  # noqa
         # type: (*str) -> List[Any]
 
         pass
