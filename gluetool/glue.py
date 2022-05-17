@@ -15,7 +15,7 @@ import io
 
 from functools import partial
 
-from six import iterkeys, itervalues, iteritems, ensure_str
+from six import iterkeys, itervalues, iteritems, ensure_str, text_type
 
 import jinja2
 import mock
@@ -1103,6 +1103,9 @@ class Configurable(LoggerMixin, object):
                         )
                     )
 
+            # Ensure string options are not `unicode` in python-2
+            if isinstance(value, text_type):
+                value = ensure_str(value)
             self._config[name] = value
             self.debug("Option '{}' set to '{}' by config file".format(name, value))  # pylint: disable=not-callable
 

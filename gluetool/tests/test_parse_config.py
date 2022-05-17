@@ -50,6 +50,19 @@ def test_parse(module):
     assert(module.option('foo') == foo_data)
     assert(module.option('bar') == None) # bar is not in the config files
 
+def test_not_unicode(module):
+    """
+    This test will check that string options are not unicode in python-2.7.
+    In python-3.x, unicode have str type, so this test will always pass.
+    """
+
+    path = abspath(testing_asset('parse_config', 'configroot', 'config', 'data_not_unicode'))
+
+    module._parse_config([path])
+
+    assert(isinstance(module.option('foo'), str))
+    assert(isinstance(module.option('bar'), str))
+
 def test_overwrite(module):
     """
     Multiple configuration files may be specified. This test is to check that
