@@ -1212,7 +1212,8 @@ def _load_yaml_variables(data, enabled=True, logger=None):
     # Our YAML reader preserves comments, they are accessible via `ca` attribute of the
     # YAML data structure (which behaves like a dict or list, but it has additional
     # powers).
-    if not hasattr(data, 'ca') or not hasattr(data.ca, 'comment') or len(data.ca.comment) <= 1:
+    if not hasattr(data, 'ca') or not hasattr(data.ca, 'comment') or data.ca.comment is None \
+            or len(data.ca.comment) <= 1:
         logger.debug('when looking for !import directives, no comments found in YAML data')
 
         return _render_template_nop
