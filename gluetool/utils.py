@@ -541,7 +541,9 @@ class Command(LoggerMixin, object):
         # Collapse optionals to specific types
         assert self._process is not None
 
-        self._stdout, self._stderr = self._process.communicate()
+        self._stdout, self._stderr = (
+            six.ensure_str(std, 'utf-8') if std is not None else std for std in self._process.communicate()
+        )
 
     def _communicate_inspect(self, inspect_callback):
         # type: (Optional[Callable[[Any, Optional[str], bool], None]]) -> None
