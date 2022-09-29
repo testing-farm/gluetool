@@ -73,3 +73,11 @@ py38-static:
 py38-unit:
   extends: .tests
   script: tox -e py38-unit-tests
+
+py39-static:
+  extends: .tests
+  script: tox -e py39-static-analysis
+
+py39-unit:
+  extends: .tests
+  script: tox -e py39-unit-tests

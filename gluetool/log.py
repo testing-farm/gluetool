@@ -63,7 +63,7 @@ if TYPE_CHECKING:
     import gluetool.sentry  # noqa
 
 # Type definitions
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,unsubscriptable-object
 ExceptionInfoType = Union[
     Tuple[Optional[type], Optional[BaseException], Optional[TracebackType]],  # returned by sys.exc_info()
     Tuple[None, None, None]

@@ -602,7 +602,6 @@ colorama = {version = "*", markers = "sys_platform == \"win32\""}
 importlib-metadata = {version = ">=0.12", markers = "python_version < \"3.8\""}
 more-itertools = ">=4.0.0"
 packaging = "*"
-pathlib2 = {version = ">=2.2.0", markers = "python_version < \"3.6\""}
 pluggy = ">=0.12,<1.0"
 py = ">=1.5.0"
 wcwidth = "*"
@@ -966,8 +965,8 @@ python-versions = ">=2.7"
 contextlib2 = {version = "*", markers = "python_version < \"3.4\""}
 
 [package.extras]
-docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
-testing = ["pathlib2", "unittest2", "jaraco.itertools", "func-timeout"]
+testing = ["func-timeout", "jaraco.itertools", "unittest2", "pathlib2"]
+docs = ["rst.linker (>=1.9)", "jaraco.packaging (>=3.2)", "sphinx"]
 
 [[package]]
 name = "zipp"
@@ -983,8 +982,8 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 
 [metadata]
 lock-version = "1.1"
-python-versions = "~2.7 || ~3.6 || ~3.7 || ~3.8"
-content-hash = "22bea29c4116152adf6fdc97eb83e02b13cb845a58ef60aa709d08ff1ce03d6e"
+python-versions = "~2.7 || ~3.6 || ~3.7 || ~3.8 || ~3.9"
+content-hash = "eb44f40ec8fe759351534e7646f0b2e31d821d4c80773c7a49e8dadabcd0e88a"
 
 [metadata.files]
 alabaster = [

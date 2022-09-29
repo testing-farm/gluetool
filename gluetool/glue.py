@@ -438,7 +438,7 @@ class PipelineStepCallback(PipelineStep):
 PipelineStepsType = Sequence[PipelineStep]
 
 #: Return type of a pipeline.
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,unsubscriptable-object
 PipelineReturnType = Tuple[Optional[Failure], Optional[Failure]]
 
 
