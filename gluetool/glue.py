@@ -1639,7 +1639,7 @@ class Module(Configurable):
         return self.glue.has_shared(funcname)
 
     def require_shared(self, *names, **kwargs):
-        # type: (*str, **str) -> bool
+        # type: (*str, **Any) -> bool
         """
         Make sure given shared functions exist.
 
@@ -2022,7 +2022,7 @@ class Glue(Configurable):
         return False
 
     def require_shared(self, *names, **kwargs):
-        # type: (*str, **str) -> bool
+        # type: (*str, **Any) -> bool
         """
         Make sure given shared functions exist.
 
