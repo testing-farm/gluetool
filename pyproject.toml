@@ -50,7 +50,7 @@ beautifulsoup4 = "^4.6.3"
 colorama = "^0.3.9"
 configparser = "^4.0.2"
 docutils = "^0.14"
-enum34 = "^1.1.6"
+enum34 = {version = "^1.1.6", python = "~2.7"}
 Jinja2 = "^2.10"
 lxml = "^4.2.4"
 markupsafe = "1.1.1"
@@ -65,7 +65,7 @@ six = "^1.12.0"
 Sphinx = "~1.5.2"
 tabulate = "^0.8.2"
 typing = { version = "^3.7.4", python = "~2.7" }
-typing-extensions = { version = "^3.7.4", python = "~2.7 || ~3.7" }
+typing-extensions = { version = "^3.7.4", python = "~2.7 || ^3.7" }
 urlnormalizer = "^1.2.0"
 # While *mypy* is a tool to check type annotations, *mypy-extensions* is a package that brings extensions
 # to the standard typing module - therefore it is not a developer dependency, as it is needed by types
@@ -84,7 +84,7 @@ MarkupSafe = "1.1.1"
 attrs = "^21.4"
 flake8 = "3.7.8"
 lazy-object_proxy = [
-    {version = "1.7.1", python = "~3.7"},
+    {version = "1.7.1", python = "^3.7"},
     {version = "1.6.0", python = "~2.7"}
 ]
 hypothesis = "^4.57.1"
