@@ -38,7 +38,7 @@ from .log import Logging, ContextAdapter, PackageAdapter, LoggerMixin, BlobLogge
 
 # Type annotations
 # pylint: disable=unused-import, wrong-import-order
-from typing import TYPE_CHECKING, cast  # noqa
+from typing import IO, TYPE_CHECKING, cast  # noqa
 from typing import Any, Callable, Deque, Dict, List, Optional, Pattern, Tuple, TypeVar, Union  # noqa
 from .log import LoggingFunctionType  # noqa
 
@@ -359,7 +359,7 @@ class WorkerThread(LoggerMixin, threading.Thread):
 
 class StreamReader(object):
     def __init__(self, stream, name=None, block=16):
-        # type: (Any, Optional[str], Optional[int]) -> None
+        # type: (Union[IO[str], IO[bytes]], Optional[str], int) -> None
 
         """
         Wrap blocking ``stream`` with a reading thread. The threads read from
@@ -390,8 +390,8 @@ class StreamReader(object):
                     self._queue.append('')
                     return
 
-                self._queue.append(data)
-                self._content.append(data)
+                self._queue.append(ensure_str(data))
+                self._content.append(ensure_str(data))
 
         self._thread = threading.Thread(target=_enqueue)
         self._thread.daemon = True
@@ -512,7 +512,7 @@ class Command(LoggerMixin, object):
 
         self._command = None  # type: Optional[List[str]]
         self._popen_kwargs = None  # type: Optional[Dict[str, Any]]
-        self._process = None  # type: Optional[subprocess.Popen[str]]
+        self._process = None  # type: Optional[Union[subprocess.Popen[str], subprocess.Popen[bytes]]]
         self._exit_code = None  # type: Optional[int]
 
         self._stdout = None  # type: Optional[str]
@@ -551,6 +551,8 @@ class Command(LoggerMixin, object):
         # Collapse optionals to specific types
         assert self._command is not None
         assert self._process is not None
+        assert self._process.stdout is not None
+        assert self._process.stderr is not None
 
         # let's capture *both* streams - capturing just a single one leads to so many ifs
         # and elses and messy code
