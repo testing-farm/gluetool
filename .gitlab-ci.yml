@@ -42,14 +42,6 @@ type-check:
   extends: .tests
   script: tox -e type-check
 
-py27-static:
-  extends: .tests
-  script: tox -e py27-static-analysis
-
-py27-unit:
-  extends: .tests
-  script: tox -e py27-unit-tests
-
 py36-static:
   extends: .tests
   script: tox -e py36-static-analysis

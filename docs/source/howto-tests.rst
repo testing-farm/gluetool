@@ -33,11 +33,9 @@ You can test a specific env with the ``-e`` switch:
 
 .. code-block:: bash
 
-   tox -e py27-unit-tests
    tox -e type-check
-   tox -e 'py{27,36,37,38}-static-analysis'
-   tox -e 'py{37,38}-{static-analysis,unit-tests}'
-   tox -e 'py27-{static-analysis,unit-tests}'
+   tox -e 'py{36,37,38,39}-static-analysis'
+   tox -e 'py{36,37,38,39}-unit-tests'
 
 Tox also accept additional options:
 
@@ -45,7 +43,7 @@ Tox also accept additional options:
 
    python setup.py test -a "--option1 --option2=value"
 
-   tox -e py27 -- --option1 --option2=value
+   tox -e py39 -- --option1 --option2=value
 
 
 How to see code coverage?
