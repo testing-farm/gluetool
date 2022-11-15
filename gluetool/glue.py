@@ -577,8 +577,9 @@ class Pipeline(LoggerMixin, object):
         try:
             return callback(*args, **kwargs)
 
+        # NOTE: we want to handle interruptions including KeyboardInterrupt
         # pylint: disable=broad-except
-        except Exception:
+        except (KeyboardInterrupt, Exception):
             return Failure(module=self.current_module, exc_info=sys.exc_info())
 
     def _for_each_module(self, modules, callback, *args, **kwargs):

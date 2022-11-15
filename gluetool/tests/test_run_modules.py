@@ -96,15 +96,18 @@ def test_safe_call(pipeline):
     mock_callback.assert_called_once_with(1, 2, foo='bar')
 
 
-def test_safe_call_exception(pipeline):
-    mock_exc = IndexError()
-    mock_callback = MagicMock(side_effect=mock_exc)
+@pytest.mark.parametrize('exception', [
+    IndexError(),
+    KeyboardInterrupt()
+])
+def test_safe_call_exception(pipeline, exception):
+    mock_callback = MagicMock(side_effect=exception)
 
     ret = pipeline._safe_call(mock_callback, 1, 2, foo='bar')
 
     assert isinstance(ret, gluetool.Failure)
     assert ret.module is None
-    assert ret.exception is mock_exc
+    assert ret.exception is exception
     assert isinstance(ret.exc_info, tuple)
 
 
