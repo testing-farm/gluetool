@@ -12,17 +12,15 @@ from gluetool.utils import wait
 from typing import Any, List  # noqa
 
 
-def test_sanity(log):
-    # type: (Any) -> None
+def test_sanity(log: Any) -> None:
 
-    return_values = [
+    return_values: List[Result[str, str]] = [
         Error('failed first time'),
         Error('failed second time'),
         Ok('finally passed')
-    ]  # type: List[Result[str, str]]
+    ]
 
-    def _check():
-        # type: () -> Result[str, str]
+    def _check() -> Result[str, str]:
 
         return return_values.pop(0)
 

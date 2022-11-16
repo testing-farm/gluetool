@@ -210,8 +210,7 @@ TEMPLATE = """
 """
 
 
-def decode_stacked(document, pos=0, decoder=json.JSONDecoder()):
-    # type: (str, int, Any) -> Iterable[Dict[str, Any]]
+def decode_stacked(document: str, pos: int = 0, decoder: Any = json.JSONDecoder()) -> Iterable[Dict[str, Any]]:
     """
     Generator returning log entries - entries are not part of one large list of log entries,
     they are simply added to the log file one by one, therefore we cannot use :py:mod:`json`
@@ -231,8 +230,13 @@ def decode_stacked(document, pos=0, decoder=json.JSONDecoder()):
         yield obj
 
 
-def _code_filter(ctx, value, syntax, apply_format=False, line_numbers=False, line_start=None, line_highlight=None):
-    # type: (Any, str, str, bool, bool, Optional[int], Optional[int]) -> Union[str, Markup]
+def _code_filter(ctx: Any,
+                 value: str,
+                 syntax: str,
+                 apply_format: bool = False,
+                 line_numbers: bool = False,
+                 line_start: Optional[int] = None,
+                 line_highlight: Optional[int] = None) -> Union[str, Markup]:
     # pylint: disable=too-many-arguments
     """
     Generic filter to highlight the code. Emits tags and content to employ Prism to do the highlighting.
@@ -272,8 +276,7 @@ def _code_filter(ctx, value, syntax, apply_format=False, line_numbers=False, lin
     return result
 
 
-def _snippet_filter(ctx, filepath, lineno, syntax, window=10):
-    # type: (Any, str, int, str, int) -> Union[str, Markup]
+def _snippet_filter(ctx: Any, filepath: str, lineno: int, syntax: str, window: int = 10) -> Union[str, Markup]:
     """
     Generic filter providing snippet of the code from a source file, including the highlight.
 
@@ -299,8 +302,7 @@ def _snippet_filter(ctx, filepath, lineno, syntax, window=10):
 
 
 @jinja2.contextfilter  # type: ignore
-def file_content_filter(ctx, value):
-    # type: (Any, str) -> Union[str, Markup]
+def file_content_filter(ctx: Any, value: str) -> Union[str, Markup]:
     # pylint: disable=unused-argument
     """
     Return content of the given file. File path must be relative to an assets directory
@@ -315,8 +317,7 @@ def file_content_filter(ctx, value):
 
 
 @jinja2.evalcontextfilter  # type: ignore
-def message_filter(ctx, value):
-    # type: (Any, str) -> Union[str, Markup]
+def message_filter(ctx: Any, value: str) -> Union[str, Markup]:
     """
     Return slightly escaped log message to make it keep its formatting in HTML.
 
@@ -336,8 +337,7 @@ def message_filter(ctx, value):
 
 
 @jinja2.evalcontextfilter  # type: ignore
-def json_filter(ctx, value):
-    # type: (Any, str) -> Union[str, Markup]
+def json_filter(ctx: Any, value: str) -> Union[str, Markup]:
     """
     Return highlighted JSON code.
 
@@ -356,8 +356,7 @@ def json_filter(ctx, value):
 
 
 @jinja2.evalcontextfilter  # type: ignore
-def python_snippet_filter(ctx, filepath, lineno):
-    # type: (Any, str, int) -> Union[str, Markup]
+def python_snippet_filter(ctx: Any, filepath: str, lineno: int) -> Union[str, Markup]:
     """
     :param ctx: render context governed by Jinja.
     :param str filepath: source file.
@@ -367,8 +366,7 @@ def python_snippet_filter(ctx, filepath, lineno):
     return _snippet_filter(ctx, filepath, lineno, 'python')
 
 
-def log_entries(stream):
-    # type: (Any) -> Any
+def log_entries(stream: Any) -> Any:
 
     """
     Return generator of log entries.
@@ -379,8 +377,7 @@ def log_entries(stream):
     return decode_stacked(stream.read())
 
 
-def main():
-    # type: () -> None
+def main() -> None:
 
     # Install our custom filters
     jinja2.defaults.DEFAULT_FILTERS.update({

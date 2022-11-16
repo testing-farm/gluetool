@@ -43,12 +43,10 @@ DEFAULT_GLUETOOL_CONFIG_PATHS = [
 DEFAULT_HANDLED_SIGNALS = (signal.SIGUSR2,)
 
 
-def handle_exc(func):
-    # type: (Callable[..., Any]) -> Callable[..., Any]
+def handle_exc(func: Callable[..., Any]) -> Callable[..., Any]:
 
     @functools.wraps(func)
-    def wrapped(self, *args, **kwargs):
-        # type: (Gluetool, *Any, **Any) -> Any
+    def wrapped(self: 'Gluetool', *args: Any, **kwargs: Any) -> Any:
 
         # pylint: disable=broad-except, protected-access
 
@@ -62,8 +60,7 @@ def handle_exc(func):
 
 
 class Gluetool(object):
-    def __init__(self):
-        # type: () -> None
+    def __init__(self) -> None:
 
         self.gluetool_config_paths = DEFAULT_GLUETOOL_CONFIG_PATHS
 
@@ -72,25 +69,23 @@ class Gluetool(object):
                 os.environ['GLUETOOL_CONFIG_PATHS']
             )
 
-        self.sentry = None  # type: Optional[gluetool.sentry.Sentry]
-        self.tracer = None  # type: Optional[gluetool.action.Tracer]
+        self.sentry: Optional[gluetool.sentry.Sentry] = None
+        self.tracer: Optional[gluetool.action.Tracer] = None
 
         # pylint: disable=invalid-name
-        self.Glue = None  # type: Optional[gluetool.glue.Glue]
+        self.Glue: Optional[gluetool.glue.Glue] = None
 
-        self.argv = None  # type: Optional[List[str]]
-        self.pipeline_desc = None  # type: Optional[List[gluetool.glue.PipelineStepModule]]
+        self.argv: Optional[List[str]] = None
+        self.pipeline_desc: Optional[List[gluetool.glue.PipelineStepModule]] = None
 
     @cached_property
-    def _version(self):
-        # type: () -> str
+    def _version(self) -> str:
 
         from .version import __version__
 
         return ensure_str(__version__.strip())
 
-    def _deduce_pipeline_desc(self, argv, modules):
-        # type: (List[Any], List[str]) -> List[gluetool.glue.PipelineStepModule]
+    def _deduce_pipeline_desc(self, argv: List[Any], modules: List[str]) -> List[gluetool.glue.PipelineStepModule]:
 
         """
         Split command-line arguments, left by ``gluetool``, into a pipeline description, splitting them
@@ -131,8 +126,7 @@ class Gluetool(object):
 
         return pipeline_desc
 
-    def log_cmdline(self, argv, pipeline_desc):
-        # type: (List[Any], List[gluetool.glue.PipelineStepModule]) -> None
+    def log_cmdline(self, argv: List[Any], pipeline_desc: List[gluetool.glue.PipelineStepModule]) -> None:
 
         cmdline = [
             [ensure_str(sys.argv[0])] + argv
@@ -145,15 +139,14 @@ class Gluetool(object):
         self.Glue.info('command-line:\n{}'.format(format_command_line(cmdline)))
 
     @cached_property
-    def _exit_logger(self):
-        # type: () -> Union[logging.Logger, gluetool.log.ContextAdapter]
+    def _exit_logger(self) -> Union[logging.Logger, gluetool.log.ContextAdapter]:
 
         """
         Return logger for use when finishing the ``gluetool`` pipeline.
         """
 
         # We want to use the current logger, if there's any set up.
-        logger = gluetool.log.Logging.get_logger()  # type: Union[logging.Logger, gluetool.log.ContextAdapter]
+        logger: Union[logging.Logger, gluetool.log.ContextAdapter] = gluetool.log.Logging.get_logger()
 
         if logger:
             return logger
@@ -169,8 +162,7 @@ class Gluetool(object):
 
         return logger
 
-    def _quit(self, exit_status):
-        # type: (int) -> NoReturn
+    def _quit(self, exit_status: int) -> NoReturn:
 
         """
         Log exit status and quit.
@@ -191,14 +183,12 @@ class Gluetool(object):
 
     # pylint: disable=invalid-name,function-redefined
     @overload
-    def _handle_failure_core(self, failure, do_quit=True):
-        # type: (gluetool.glue.Failure, Literal[True]) -> NoReturn
+    def _handle_failure_core(self, failure: gluetool.glue.Failure, do_quit: Literal[True] = True) -> NoReturn:
 
         pass
 
     @overload  # noqa
-    def _handle_failure_core(self, failure, do_quit):  # noqa
-        # type: (gluetool.glue.Failure, Literal[False]) -> None
+    def _handle_failure_core(self, failure: gluetool.glue.Failure, do_quit: Literal[False]) -> None:  # noqa
 
         pass
 
@@ -240,13 +230,11 @@ class Gluetool(object):
 
     # pylint: disable=invalid-name,function-redefined
     @overload
-    def _handle_failure(self, failure, do_quit=True):
-        # type: (gluetool.glue.Failure, Literal[True]) -> NoReturn
+    def _handle_failure(self, failure: gluetool.glue.Failure, do_quit: Literal[True] = True) -> NoReturn:
         pass
 
     @overload  # noqa
-    def _handle_failure(self, failure, do_quit=False):  # noqa
-        # type: (gluetool.glue.Failure, Literal[False]) -> None
+    def _handle_failure(self, failure: gluetool.glue.Failure, do_quit: Literal[False] = False) -> None:  # noqa
 
         pass
 
@@ -294,8 +282,7 @@ Will try to submit it to Sentry but giving up on everything else.
             sys.exit(-1)
 
     @handle_exc
-    def setup(self):
-        # type: () -> None
+    def setup(self) -> None:
 
         self.sentry = gluetool.sentry.Sentry()
         self.tracer = gluetool.action.Tracer()
@@ -306,8 +293,10 @@ Will try to submit it to Sentry but giving up on everything else.
         orig_sigint_handler = signal.getsignal(signal.SIGINT)
         sigmap = {getattr(signal, name): name for name in [name for name in dir(signal) if name.startswith('SIG')]}
 
-        def _signal_handler(signum, frame, handler=None, msg=None):
-            # type: (int, FrameType, Optional[Callable[[int, FrameType], None]], Optional[str]) -> Any
+        def _signal_handler(signum: int,
+                            frame: FrameType,
+                            handler: Optional[Callable[[int, FrameType], None]] = None,
+                            msg: Optional[str] = None) -> Any:
 
             msg = msg or 'Signal {} received'.format(sigmap[signum])
 
@@ -316,8 +305,7 @@ Will try to submit it to Sentry but giving up on everything else.
             if handler is not None:
                 return handler(signum, frame)
 
-        def _sigusr1_handler(signum, frame):
-            # type: (int, FrameType) -> None
+        def _sigusr1_handler(signum: int, frame: FrameType) -> None:
 
             # pylint: disable=unused-argument
 
@@ -362,8 +350,7 @@ Will try to submit it to Sentry but giving up on everything else.
         Glue.modules = Glue.discover_modules()
 
     @handle_exc
-    def check_options(self):
-        # type: () -> None
+    def check_options(self) -> None:
 
         Glue = self.Glue
         assert Glue is not None
@@ -382,7 +369,7 @@ Will try to submit it to Sentry but giving up on everything else.
             sys.exit(0)
 
         if Glue.option('list-shared'):
-            functions = []  # type: List[List[str]]
+            functions: List[List[str]] = []
 
             for mod_name in sorted(iterkeys(Glue.modules)):
                 functions += [
@@ -404,8 +391,8 @@ Will try to submit it to Sentry but giving up on everything else.
         if Glue.option('list-eval-context'):
             variables = []
 
-            def _add_variables(source):
-                # type: (gluetool.glue.Configurable) -> None
+            def _add_variables(source: gluetool.glue.Configurable) -> None:
+                assert source.name is not None
 
                 info = extract_eval_context_info(source)
 
@@ -436,8 +423,7 @@ Will try to submit it to Sentry but giving up on everything else.
             sys.exit(0)
 
     @handle_exc
-    def run_pipeline(self):
-        # type: () -> PipelineReturnType
+    def run_pipeline(self) -> PipelineReturnType:
 
         Glue = self.Glue
         assert Glue is not None
@@ -475,8 +461,7 @@ Will try to submit it to Sentry but giving up on everything else.
 
         return None, None
 
-    def main(self):
-        # type: () -> None
+    def main(self) -> None:
 
         self.setup()
         self.check_options()
@@ -497,8 +482,7 @@ Will try to submit it to Sentry but giving up on everything else.
         self._quit(0)
 
 
-def main():
-    # type: () -> None
+def main() -> None:
 
     app = Gluetool()
     app.main()

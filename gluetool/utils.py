@@ -39,12 +39,11 @@ from .log import Logging, ContextAdapter, PackageAdapter, LoggerMixin, BlobLogge
 
 # Type annotations
 # pylint: disable=unused-import, wrong-import-order
-from typing import IO, TYPE_CHECKING, cast  # noqa
+from typing import IO, cast  # noqa
 from typing import Any, Callable, Deque, Dict, List, Optional, Pattern, Tuple, TypeVar, Union  # noqa
 from .log import LoggingFunctionType  # noqa
 
-if TYPE_CHECKING:
-    import logging  # noqa
+import logging  # noqa
 
 
 # Type variable used in generic types
@@ -58,8 +57,7 @@ if 'file' not in urlnormalizer.normalizer.SCHEMES:
 
 
 # Jinja2 filter - regular expression replace
-def regex_replace(s, find, replace, ignorecase=False, multiline=False):
-    # type: (str, str, str, bool, bool) -> str
+def regex_replace(s: str, find: str, replace: str, ignorecase: bool = False, multiline: bool = False) -> str:
     flags = 0
     if ignorecase:
         flags |= re.IGNORECASE
@@ -72,16 +70,14 @@ def regex_replace(s, find, replace, ignorecase=False, multiline=False):
 jinja2.defaults.DEFAULT_FILTERS['regex_replace'] = regex_replace
 
 
-def regex_escape(s):
-    # type: (str) -> str
+def regex_escape(s: str) -> str:
     return re.escape(s)
 
 
 jinja2.defaults.DEFAULT_FILTERS['regex_escape'] = regex_escape
 
 
-def deprecated(func):
-    # type: (Callable[..., Any]) -> Callable[..., Any]
+def deprecated(func: Callable[..., Any]) -> Callable[..., Any]:
 
     """
     This is a decorator which can be used to mark functions as deprecated. It will result in a warning being emitted
@@ -89,8 +85,7 @@ def deprecated(func):
     """
 
     @functools.wraps(func)
-    def new_func(*args, **kwargs):
-        # type: (*Any, **Any) -> Any
+    def new_func(*args: Any, **kwargs: Any) -> Any:
 
         warnings.simplefilter('always', DeprecationWarning)  # turn off filter
         warnings.warn('Function {} is deprecated.'.format(func.__name__), category=DeprecationWarning,
@@ -102,8 +97,7 @@ def deprecated(func):
     return new_func
 
 
-def dict_update(dst, *args):
-    # type: (Dict[Any, Any], *Dict[Any, Any]) -> Dict[Any, Any]
+def dict_update(dst: Dict[Any, Any], *args: Dict[Any, Any]) -> Dict[Any, Any]:
 
     """
     Python's ``dict.update`` does not return the dictionary just updated but a ``None``. This function
@@ -132,8 +126,7 @@ def dict_update(dst, *args):
     return dst
 
 
-def normalize_bool_option(option_value):
-    # type: (Union[str, bool]) -> bool
+def normalize_bool_option(option_value: Union[str, bool]) -> bool:
 
     """
     Convert option value to Python's boolean.
@@ -172,8 +165,7 @@ def normalize_bool_option(option_value):
     return False
 
 
-def normalize_multistring_option(option_value, separator=','):
-    # type: (Union[str, List[str]], Optional[str]) -> List[str]
+def normalize_multistring_option(option_value: Union[str, List[str]], separator: Optional[str] = ',') -> List[str]:
 
     """
     Reduce string, representing comma-separated list of items, or possibly a list of such strings,
@@ -216,8 +208,7 @@ def normalize_multistring_option(option_value, separator=','):
     ], [])
 
 
-def normalize_shell_option(option_value):
-    # type: (Union[str, List[str]]) -> List[str]
+def normalize_shell_option(option_value: Union[str, List[str]]) -> List[str]:
 
     """
     Reduce string, using a shell-like syntax, or possibly a list of such strings,
@@ -255,8 +246,7 @@ def normalize_shell_option(option_value):
     ], [])
 
 
-def normalize_path(path):
-    # type: (str) -> str
+def normalize_path(path: str) -> str:
 
     """
     Apply common treatments on a given path:
@@ -268,8 +258,7 @@ def normalize_path(path):
     return os.path.abspath(os.path.expanduser(path))
 
 
-def normalize_path_option(option_value, separator=','):
-    # type: (Union[str, List[str]], Optional[str]) -> List[str]
+def normalize_path_option(option_value: Union[str, List[str]], separator: Optional[str] = ',') -> List[str]:
 
     """
     Reduce many ways how list of paths is specified by user, to a simple list of paths. See
@@ -287,8 +276,7 @@ class Bunch(object):
     # pylint: disable=too-few-public-methods
 
     @deprecated
-    def __init__(self, **kwargs):
-        # type: (**Any) -> None
+    def __init__(self, **kwargs: Any) -> None:
 
         self.__dict__.update(kwargs)
 
@@ -301,8 +289,7 @@ class ThreadAdapter(ContextAdapter):
     :param threading.Thread thread: thread whose name will be added.
     """
 
-    def __init__(self, logger, thread):
-        # type: (Union[logging.Logger, ContextAdapter], threading.Thread) -> None
+    def __init__(self, logger: Union[logging.Logger, ContextAdapter], thread: threading.Thread) -> None:
 
         super(ThreadAdapter, self).__init__(logger, {'ctx_thread_name': (5, thread.name)})
 
@@ -320,8 +307,12 @@ class WorkerThread(LoggerMixin, threading.Thread):
     :param fn_kwargs: keyword arguments for `fn`
     """
 
-    def __init__(self, logger, fn, fn_args=None, fn_kwargs=None, **kwargs):
-        # type: (ContextAdapter, Callable[..., Any], Optional[Tuple[Any, ...]], Optional[Dict[str, Any]], **Any) -> None
+    def __init__(self,
+                 logger: ContextAdapter,
+                 fn: Callable[..., Any],
+                 fn_args: Optional[Tuple[Any, ...]] = None,
+                 fn_kwargs: Optional[Dict[str, Any]] = None,
+                 **kwargs: Any) -> None:
 
         threading.Thread.__init__(self, **kwargs)
         LoggerMixin.__init__(self, ThreadAdapter(logger, self))
@@ -330,10 +321,9 @@ class WorkerThread(LoggerMixin, threading.Thread):
         self._args = fn_args or ()
         self._kwargs = fn_kwargs or {}
 
-        self.result = None  # type: Union[Exception, Any]
+        self.result: Union[Exception, Any] = None
 
-    def run(self):
-        # type: () -> None
+    def run(self) -> None:
 
         self.debug('worker thread started')
 
@@ -350,8 +340,7 @@ class WorkerThread(LoggerMixin, threading.Thread):
 
 
 class StreamReader(object):
-    def __init__(self, stream, name=None, block=16):
-        # type: (Union[IO[str], IO[bytes]], Optional[str], int) -> None
+    def __init__(self, stream: Union[IO[str], IO[bytes]], name: Optional[str] = None, block: int = 16) -> None:
 
         """
         Wrap blocking ``stream`` with a reading thread. The threads read from
@@ -364,11 +353,10 @@ class StreamReader(object):
 
         # List would fine as well, however deque is better optimized for
         # FIFO operations, and it provides the same thread safety.
-        self._queue = collections.deque()  # type: Deque[Union[None, str]]
-        self._content = []  # type: List[str]
+        self._queue: Deque[Union[None, str]] = collections.deque()
+        self._content: List[str] = []
 
-        def _enqueue():
-            # type: () -> None
+        def _enqueue() -> None:
 
             """
             Read what's available in stream and add it into the queue
@@ -390,24 +378,20 @@ class StreamReader(object):
         self._thread.start()
 
     @property
-    def name(self):
-        # type: () -> str
+    def name(self) -> str:
 
         return self._name
 
     @property
-    def content(self):
-        # type: () -> str
+    def content(self) -> str:
 
         return ''.join(self._content)
 
-    def wait(self):
-        # type: () -> None
+    def wait(self) -> None:
 
         self._thread.join()
 
-    def read(self):
-        # type: () -> Optional[str]
+    def read(self) -> Optional[str]:
 
         try:
             return cast(str, self._queue.popleft())
@@ -422,8 +406,12 @@ class ProcessOutput(object):
     """
 
     # pylint: disable=too-many-arguments,too-few-public-methods
-    def __init__(self, cmd, exit_code, stdout, stderr, kwargs):
-        # type: (List[str], int, Optional[str], Optional[str], Dict[str, Any]) -> None
+    def __init__(self,
+                 cmd: List[str],
+                 exit_code: int,
+                 stdout: Optional[str],
+                 stderr: Optional[str],
+                 kwargs: Dict[str, Any]) -> None:
 
         self.cmd = cmd
         self.kwargs = kwargs
@@ -432,8 +420,7 @@ class ProcessOutput(object):
         self.stdout = stdout
         self.stderr = stderr
 
-    def log_stream(self, stream, logger):
-        # type: (str, ContextAdapter) -> None
+    def log_stream(self, stream: str, logger: ContextAdapter) -> None:
 
         content = getattr(self, stream)
 
@@ -446,8 +433,7 @@ class ProcessOutput(object):
         else:
             log_blob(logger.verbose, stream, content)
 
-    def log(self, logger):
-        # type: (ContextAdapter) -> None
+    def log(self, logger: ContextAdapter) -> None:
 
         logger.debug('command exited with code {}'.format(self.exit_code))
 
@@ -491,27 +477,28 @@ class Command(LoggerMixin, object):
 
     # pylint: disable=too-few-public-methods
 
-    def __init__(self, executable, options=None, logger=None):
-        # type: (List[str], Optional[List[str]], Optional[ContextAdapter]) -> None
+    def __init__(self,
+                 executable: List[str],
+                 options: Optional[List[str]] = None,
+                 logger: Optional[ContextAdapter] = None) -> None:
 
         super(Command, self).__init__(logger or Logging.get_logger())
 
         self.executable = executable
-        self.options = options or []  # type: List[str]
+        self.options: List[str] = options or []
 
         self.use_shell = False
         self.quote_args = False
 
-        self._command = None  # type: Optional[List[str]]
-        self._popen_kwargs = None  # type: Optional[Dict[str, Any]]
-        self._process = None  # type: Optional[Union[subprocess.Popen[str], subprocess.Popen[bytes]]]
-        self._exit_code = None  # type: Optional[int]
+        self._command: Optional[List[str]] = None
+        self._popen_kwargs: Optional[Dict[str, Any]] = None
+        self._process: Optional[Union['subprocess.Popen[str]', 'subprocess.Popen[bytes]']] = None
+        self._exit_code: Optional[int] = None
 
-        self._stdout = None  # type: Optional[str]
-        self._stderr = None  # type: Optional[str]
+        self._stdout: Optional[str] = None
+        self._stderr: Optional[str] = None
 
-    def _apply_quotes(self):
-        # type: () -> List[str]
+    def _apply_quotes(self) -> List[str]:
 
         """
         Return options to pass to ``Popen``. Applies quotes as necessary.
@@ -527,8 +514,7 @@ class Command(LoggerMixin, object):
                      (option.startswith('"') and option.endswith('"')) or (option.startswith("'") and option.endswith("'")))  # Ignore PEP8Bear
                  else option) for option in self.executable + self.options]
 
-    def _communicate_batch(self):
-        # type: () -> None
+    def _communicate_batch(self) -> None:
 
         # Collapse optionals to specific types
         assert self._process is not None
@@ -537,8 +523,7 @@ class Command(LoggerMixin, object):
             ensure_str(std, 'utf-8') if std is not None else std for std in self._process.communicate()
         )
 
-    def _communicate_inspect(self, inspect_callback):
-        # type: (Optional[Callable[[Any, Optional[str], bool], None]]) -> None
+    def _communicate_inspect(self, inspect_callback: Optional[Callable[[Any, Optional[str], bool], None]]) -> None:
 
         # Collapse optionals to specific types
         assert self._command is not None
@@ -552,8 +537,7 @@ class Command(LoggerMixin, object):
         p_stderr = StreamReader(self._process.stderr, name='<stderr>')
 
         if inspect_callback is None:
-            def stdout_write(stream, data, flush):
-                # type: (Any, Optional[str], bool) -> None
+            def stdout_write(stream: Any, data: Optional[str], flush: bool) -> None:
 
                 # pylint: disable=unused-argument
 
@@ -605,8 +589,7 @@ class Command(LoggerMixin, object):
 
         self._stdout, self._stderr = p_stdout.content, p_stderr.content
 
-    def _construct_output(self):
-        # type: () -> ProcessOutput
+    def _construct_output(self) -> ProcessOutput:
 
         # Collapse optionals to specific types
         assert self.logger is not None
@@ -620,8 +603,10 @@ class Command(LoggerMixin, object):
 
         return output
 
-    def run(self, inspect=False, inspect_callback=None, **kwargs):
-        # type: (Optional[bool], Optional[Callable[..., None]], **Any) -> ProcessOutput
+    def run(self,
+            inspect: Optional[bool] = False,
+            inspect_callback: Optional[Callable[..., None]] = None,
+            **kwargs: Any) -> ProcessOutput:
 
         """
         Run the command, wait for it to finish and return the output.
@@ -638,8 +623,7 @@ class Command(LoggerMixin, object):
 
         # pylint: disable=too-many-branches
 
-        def _check_types(items):
-            # type: (List[str]) -> None
+        def _check_types(items: List[str]) -> None:
 
             if not isinstance(items, list):
                 raise GlueError('Only list of strings is accepted')
@@ -667,8 +651,7 @@ class Command(LoggerMixin, object):
 
         self._popen_kwargs = kwargs
 
-        def _format_stream(stream):
-            # type: (Any) -> str
+        def _format_stream(stream: Any) -> str:
 
             if stream == subprocess.PIPE:
                 return 'PIPE'
@@ -678,7 +661,7 @@ class Command(LoggerMixin, object):
                 return 'STDOUT'
             return str(stream)
 
-        printable_kwargs = kwargs.copy()  # type: Dict[str, Any]
+        printable_kwargs: Dict[str, Any] = kwargs.copy()
         for stream in ('stdout', 'stderr'):
             if stream in printable_kwargs:
                 printable_kwargs[stream] = _format_stream(printable_kwargs[stream])
@@ -714,8 +697,11 @@ class Command(LoggerMixin, object):
 
 
 @deprecated
-def run_command(cmd, logger=None, inspect=False, inspect_callback=None, **kwargs):
-    # type: (List[str], Optional[ContextAdapter], bool, Optional[Callable[..., None]], **Any) -> ProcessOutput
+def run_command(cmd: List[str],
+                logger: Optional[ContextAdapter] = None,
+                inspect: bool = False,
+                inspect_callback: Optional[Callable[..., None]] = None,
+                **kwargs: Any) -> ProcessOutput:
 
     # pylint: disable=unused-argument
 
@@ -732,8 +718,7 @@ def run_command(cmd, logger=None, inspect=False, inspect_callback=None, **kwargs
     return Command(cmd, logger=logger).run(**kwargs)
 
 
-def check_for_commands(cmds):
-    # type: (List[str]) -> None
+def check_for_commands(cmds: List[str]) -> None:
 
     """ Checks if all commands in list cmds are valid """
 
@@ -762,14 +747,12 @@ class cached_property(object):
     supported so far.
     """
 
-    def __init__(self, method):
-        # type: (Callable[..., Any]) -> None
+    def __init__(self, method: Callable[..., Any]) -> None:
 
         self._method = method
         self.__doc__ = getattr(method, '__doc__')
 
-    def __get__(self, obj, cls):
-        # type: (Any, Any) -> Any
+    def __get__(self, obj: Any, cls: Any) -> Any:
 
         # does not support class attribute access, only instance
         assert obj is not None
@@ -783,8 +766,7 @@ class cached_property(object):
         return value
 
 
-def format_command_line(cmdline):
-    # type: (List[List[str]]) -> str
+def format_command_line(cmdline: List[List[str]]) -> str:
 
     """
     Return formatted command-line.
@@ -794,8 +776,7 @@ def format_command_line(cmdline):
     :param list cmdline: list of iterables, representing command-line split to multiple lines.
     """
 
-    def _format_options(options):
-        # type: (List[str]) -> str
+    def _format_options(options: List[str]) -> str:
 
         # To make code more readable, it's split to multiple lines. First, make sure each option
         # is "str", accepted by `shlex_quote` function.
@@ -820,8 +801,10 @@ def format_command_line(cmdline):
 
 
 @deprecated
-def fetch_url(url, logger=None, success_codes=(200,), timeout=60):
-    # type: (str, Optional[ContextAdapter], Tuple[int, ...], int) -> Tuple[Any, str]
+def fetch_url(url: str,
+              logger: Optional[ContextAdapter] = None,
+              success_codes: Tuple[int, ...] = (200,),
+              timeout: int = 60) -> Tuple[Any, str]:
 
     """
     "Get me content of this URL" helper.
@@ -856,8 +839,7 @@ def fetch_url(url, logger=None, success_codes=(200,), timeout=60):
 
 
 @contextlib.contextmanager
-def requests(logger=None):
-    # type: (Optional[ContextAdapter]) -> Any
+def requests(logger: Optional[ContextAdapter] = None) -> Any:
 
     """
     Wrap :py:mod:`requests` with few layers providing us with the logging and better insight into
@@ -904,8 +886,7 @@ def requests(logger=None):
 
         # ``original_method`` is the actual ``requests.foo`` (``get``, ``post``, ...), wrapper
         # calls it to do the job, and logs response when it's done.
-        def _verbose_request(original_method, *args, **kwargs):
-            # type: (Callable[..., Any], *Any, **Any) -> Any
+        def _verbose_request(original_method: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
 
             ret = original_method(*args, **kwargs)
 
@@ -938,8 +919,7 @@ def requests(logger=None):
             http_client.HTTPConnection.debuglevel = 0  # type: ignore
 
 
-def treat_url(url, logger=None):
-    # type: (str, Optional[ContextAdapter]) -> str
+def treat_url(url: str, logger: Optional[ContextAdapter] = None) -> str:
 
     """
     Remove "weird" artifacts from the given URL. Collapse adjacent '.'s, apply '..', etc.
@@ -963,8 +943,9 @@ def treat_url(url, logger=None):
     return ensure_str(norm_url.strip())
 
 
-def render_template(template, logger=None, **kwargs):
-    # type: (Union[str, jinja2.environment.Template], Optional[ContextAdapter], **Any) -> str
+def render_template(template: Union[str, jinja2.environment.Template],
+                    logger: Optional[ContextAdapter] = None,
+                    **kwargs: Any) -> str:
 
     """
     Render Jinja2 template. Logs errors, and raises an exception when it's not possible
@@ -982,8 +963,7 @@ def render_template(template, logger=None, **kwargs):
     assert logger is not None
 
     try:
-        def _render(template, source):
-            # type: (jinja2.Template, str) -> str
+        def _render(template: jinja2.Template, source: str) -> str:
 
             assert logger is not None
 
@@ -1009,8 +989,7 @@ def render_template(template, logger=None, **kwargs):
 
 
 # pylint: disable=invalid-name
-def YAML(loader_type=None):
-    # type: (Optional[str]) -> ruamel.yaml.YAML
+def YAML(loader_type: Optional[str] = None) -> ruamel.yaml.YAML:
 
     """
     Provides YAML read/write interface with common settings.
@@ -1026,8 +1005,7 @@ def YAML(loader_type=None):
     return yaml
 
 
-def from_yaml(yaml_string, loader_type=None):
-    # type: (str, Optional[str]) -> Any
+def from_yaml(yaml_string: str, loader_type: Optional[str] = None) -> Any:
 
     """
     Convert YAML in a string into Python data structures.
@@ -1042,8 +1020,7 @@ def from_yaml(yaml_string, loader_type=None):
     return YAML(loader_type).load(yaml_string)
 
 
-def load_yaml(filepath, loader_type=None, logger=None):
-    # type: (str, Optional[str], Optional[ContextAdapter]) -> Any
+def load_yaml(filepath: str, loader_type: Optional[str] = None, logger: Optional[ContextAdapter] = None) -> Any:
 
     """
     Load data stored in YAML file, and return their Python representation.
@@ -1081,8 +1058,7 @@ def load_yaml(filepath, loader_type=None, logger=None):
         raise GlueError("Unable to load YAML file '{}': {}".format(filepath, e)) from e
 
 
-def dump_yaml(data, filepath, logger=None):
-    # type: (Any, str, Optional[ContextAdapter]) -> None
+def dump_yaml(data: Any, filepath: str, logger: Optional[ContextAdapter] = None) -> None:
 
     """
     Save data stored in variable to YAML file.
@@ -1111,8 +1087,7 @@ def dump_yaml(data, filepath, logger=None):
         raise GlueError("Unable to save YAML file '{}': {}".format(filepath, e)) from e
 
 
-def _json_byteify(data, ignore_dicts=False):
-    # type: (Any, Optional[bool]) -> Any
+def _json_byteify(data: Any, ignore_dicts: Optional[bool] = False) -> Any:
 
     # if this is a unicode string, return it
     if isinstance(data, six.string_types):
@@ -1134,8 +1109,7 @@ def _json_byteify(data, ignore_dicts=False):
     return data
 
 
-def from_json(json_string):
-    # type: (str) -> Any
+def from_json(json_string: str) -> Any:
 
     """
     Convert JSON in a string into Python data structures.
@@ -1147,8 +1121,7 @@ def from_json(json_string):
     return _json_byteify(json.loads(json_string, object_hook=_json_byteify), ignore_dicts=True)
 
 
-def load_json(filepath, logger=None):
-    # type: (str, Optional[ContextAdapter]) -> Any
+def load_json(filepath: str, logger: Optional[ContextAdapter] = None) -> Any:
 
     """
     Load data stored in JSON file, and return their Python representation.
@@ -1183,8 +1156,9 @@ def load_json(filepath, logger=None):
         raise GlueError("Unable to load JSON file '{}': {}".format(filepath, exc)) from exc
 
 
-def _load_yaml_variables(data, enabled=True, logger=None):
-    # type: (Any, bool, Optional[ContextAdapter]) -> Callable[[str], Union[str, List[str]]]
+def _load_yaml_variables(data: Any,
+                         enabled: bool = True,
+                         logger: Optional[ContextAdapter] = None) -> Callable[[str], Union[str, List[str]]]:
     """
     Load all variables from files referenced by a YAML, and return function to render a string
     as a template using these variables. The files containing variables are mentioned in comments,
@@ -1199,8 +1173,7 @@ def _load_yaml_variables(data, enabled=True, logger=None):
 
     logger = logger or Logging.get_logger()
 
-    def _render_template_nop(s):
-        # type: (str) -> str
+    def _render_template_nop(s: str) -> str:
 
         return s
 
@@ -1218,7 +1191,7 @@ def _load_yaml_variables(data, enabled=True, logger=None):
 
     # Ok, so this YAML data contains comments. Check their values to find `!import-variables` directives.
     # Load referenced files and merged them into a single context.
-    context = {}  # type: Dict[str, Any]
+    context: Dict[str, Any] = {}
 
     for comment in data.ca.comment[1]:
         value = comment.value.strip()
@@ -1236,8 +1209,7 @@ def _load_yaml_variables(data, enabled=True, logger=None):
 
         context.update(load_yaml(variables_map_path, logger=logger))
 
-    def _render_template(s):
-        # type: (Union[str, List[str]]) -> Union[str, List[str]]
+    def _render_template(s: Union[str, List[str]]) -> Union[str, List[str]]:
 
         if isinstance(s, six.string_types):
             return render_template(s, logger=logger, **context)
@@ -1270,8 +1242,7 @@ class SimplePatternMap(LoggerMixin, object):
         ``# !import-variables <path>``, where path refers to a YAML file providing the necessary variables.
     """
 
-    def __init__(self, filepath, logger=None, allow_variables=False):
-        # type: (str, Optional[ContextAdapter], bool) -> None
+    def __init__(self, filepath: str, logger: Optional[ContextAdapter] = None, allow_variables: bool = False) -> None:
 
         super(SimplePatternMap, self).__init__(logger or Logging.get_logger())
 
@@ -1282,7 +1253,7 @@ class SimplePatternMap(LoggerMixin, object):
 
         _render_template = _load_yaml_variables(pattern_map, enabled=allow_variables, logger=self.logger)
 
-        self._compiled_map = []  # type: List[Tuple[Pattern[str], str]]
+        self._compiled_map: List[Tuple[Pattern[str], str]] = []
 
         for pattern_dict in pattern_map:
             if not isinstance(pattern_dict, dict):
@@ -1307,8 +1278,7 @@ class SimplePatternMap(LoggerMixin, object):
 
             self._compiled_map.append((pattern, result))
 
-    def match(self, s):
-        # type: (str) -> str
+    def match(self, s: str) -> str:
 
         """
         Try to match ``s`` by the map. If the match is found - the first one wins - then its
@@ -1389,12 +1359,11 @@ class PatternMap(LoggerMixin, object):
     """
 
     def __init__(self,
-                 filepath,  # type: str
-                 spices=None,  # type: Optional[Dict[str, Callable[..., Callable[[Any, str], str]]]]
-                 logger=None,  # type: Optional[ContextAdapter]
-                 allow_variables=False  # type: bool
-                ):  # noqa
-        # type: (...) -> None
+                 filepath: str,
+                 spices: Optional[Dict[str, Callable[..., Callable[[Any, str], str]]]] = None,
+                 logger: Optional[ContextAdapter] = None,
+                 allow_variables: bool = False
+                ) -> None:  # noqa
 
         super(PatternMap, self).__init__(logger or Logging.get_logger())
 
@@ -1407,11 +1376,9 @@ class PatternMap(LoggerMixin, object):
 
         _render_template = _load_yaml_variables(pattern_map, enabled=allow_variables, logger=self.logger)
 
-        def _create_simple_repl(repl):
-            # type: (str) -> Callable[[Pattern[str], str], str]
+        def _create_simple_repl(repl: str) -> Callable[[Pattern[str], str], str]:
 
-            def _replace(pattern, target):
-                # type: (Pattern[str], str) -> Any
+            def _replace(pattern: Pattern[str], target: str) -> Any:
 
                 """
                 Use `repl` to construct image from `target`, honoring all backreferences made by `pattern`.
@@ -1428,7 +1395,7 @@ class PatternMap(LoggerMixin, object):
 
             return _replace
 
-        self._compiled_map = []  # type: List[Tuple[Pattern[str], List[Callable[[Pattern[str], str], str]]]]
+        self._compiled_map: List[Tuple[Pattern[str], List[Callable[[Pattern[str], str], str]]]] = []
 
         for pattern_dict in pattern_map:
             log_dict(self.debug, 'pattern dict', pattern_dict)
@@ -1481,8 +1448,7 @@ class PatternMap(LoggerMixin, object):
 
             self._compiled_map.append((compiled_pattern, compiled_chains))
 
-    def match(self, s, multiple=False):
-        # type: (str, bool) -> Union[str, List[str]]
+    def match(self, s: str, multiple: bool = False) -> Union[str, List[str]]:
 
         """
         Try to match ``s`` by the map. If the match is found - the first one wins - then its
@@ -1528,8 +1494,11 @@ class PatternMap(LoggerMixin, object):
 WaitCheckType = Callable[[], Result[T, Any]]
 
 
-def wait(label, check, timeout=None, tick=30, logger=None):
-    # type: (str, WaitCheckType[T], Optional[int], int, Optional[ContextAdapter]) -> T
+def wait(label: str,
+         check: WaitCheckType[T],
+         timeout: Optional[int] = None,
+         tick: int = 30,
+         logger: Optional[ContextAdapter] = None) -> T:
     """
     Wait for a condition to be true.
 
@@ -1556,8 +1525,7 @@ def wait(label, check, timeout=None, tick=30, logger=None):
     if timeout is not None:
         end_time = time.time() + timeout
 
-    def _timeout():
-        # type: () -> str
+    def _timeout() -> str:
 
         return '{} seconds'.format(int(end_time - time.time())) if timeout is not None else 'infinite'
 
@@ -1582,8 +1550,7 @@ def wait(label, check, timeout=None, tick=30, logger=None):
     raise GlueError("Condition '{}' failed to pass within given time".format(label))
 
 
-def new_xml_element(tag_name, _parent=None, **attrs):
-    # type: (str, Optional[Any], **str) -> Any
+def new_xml_element(tag_name: str, _parent: Optional[Any] = None, **attrs: str) -> Any:
 
     """
     Create new XML element.

@@ -33,8 +33,7 @@ class Result(Generic[T, E]):
     :param bool _force: guards against accidental direct use.
     """
 
-    def __init__(self, _is_ok, _value, _force=False):
-        # type: (bool, Union[T, E], bool) -> None
+    def __init__(self, _is_ok: bool, _value: Union[T, E], _force: bool = False) -> None:
         """
         .. warning::
 
@@ -49,8 +48,7 @@ class Result(Generic[T, E]):
         self._is_ok = _is_ok
         self._value = _value
 
-    def __eq__(self, other):
-        # type: (Any) -> bool
+    def __eq__(self, other: Any) -> bool:
         # pylint: disable=protected-access
 
         # pylint: disable=line-too-long
@@ -58,18 +56,15 @@ class Result(Generic[T, E]):
             self.__class__ == other.__class__ and self.is_ok == cast(Result[T, E], other).is_ok and self._value == other._value  # Ignore: PEP8Bear
         )
 
-    def __ne__(self, other):
-        # type: (Any) -> bool
+    def __ne__(self, other: Any) -> bool:
 
         return not bool(self == other)
 
-    def __hash__(self):
-        # type: () -> int
+    def __hash__(self) -> int:
 
         return hash((self.is_ok, self._value))
 
-    def __repr__(self):
-        # type: () -> str
+    def __repr__(self) -> str:
 
         if self.is_ok:
             return 'Ok({})'.format(repr(self._value))
@@ -78,27 +73,23 @@ class Result(Generic[T, E]):
 
     # pylint: disable=invalid-name
     @classmethod
-    def Ok(cls, value):
-        # type: (T) -> Result[T, E]
+    def Ok(cls, value: T) -> 'Result[T, E]':
 
         return cls(_is_ok=True, _value=value, _force=True)
 
     # pylint: disable=invalid-name
     @classmethod
-    def Error(cls, error):
-        # type: (E) -> Result[T, E]
+    def Error(cls, error: E) -> 'Result[T, E]':
 
         return cls(_is_ok=False, _value=error, _force=True)
 
     @property
-    def is_ok(self):
-        # type: () -> bool
+    def is_ok(self) -> bool:
 
         return self._is_ok
 
     @property
-    def is_error(self):
-        # type: () -> bool
+    def is_error(self) -> bool:
         """
         Returns ``True`` if the result value is invalid.
         """
@@ -107,8 +98,7 @@ class Result(Generic[T, E]):
 
     # pylint: disable=invalid-name
     @property
-    def ok(self):
-        # type: () -> Optional[T]
+    def ok(self) -> Optional[T]:
         """
         Return the result value - valid - if it is valid. Otherwise,
         ``None`` is returned.
@@ -117,8 +107,7 @@ class Result(Generic[T, E]):
         return cast(T, self._value) if self.is_ok else None
 
     @property
-    def error(self):
-        # type: () -> Optional[E]
+    def error(self) -> Optional[E]:
         """
         Return the result value - error - if it is invalid. Otherwise, ``None``
         is returned.
@@ -127,16 +116,14 @@ class Result(Generic[T, E]):
         return cast(E, self._value) if self.is_error else None
 
     @property
-    def value(self):
-        # type: () -> Union[T, E]
+    def value(self) -> Union[T, E]:
         """
         Return the result value. It will be either one of valid and error types.
         """
 
         return self._value
 
-    def expect(self, message):
-        # type: (str) -> T
+    def expect(self, message: str) -> T:
         """
         Return the result value if it is valid. Otherwise, an exception is raised.
         """
@@ -150,8 +137,7 @@ class Result(Generic[T, E]):
 
         raise GlueError(message)
 
-    def expect_error(self, message):
-        # type: (str) -> E
+    def expect_error(self, message: str) -> E:
         """
         Return the result value if it is invalid. Otherwise, an exception is raised.
         """
@@ -165,24 +151,21 @@ class Result(Generic[T, E]):
 
         raise GlueError(message)
 
-    def unwrap(self):
-        # type: () -> T
+    def unwrap(self) -> T:
         """
         Return the result value if it is valid. Otherwise, an exception is rised.
         """
 
         return self.expect('Expected valid result value, found error')
 
-    def unwrap_error(self):
-        # type: () -> E
+    def unwrap_error(self) -> E:
         """
         Return the error value if the result is invalid. Othwerise, an exception is raised.
         """
 
         return self.expect_error('Expected invalid result value, found valid one')
 
-    def unwrap_or(self, default):
-        # type: (T) -> T
+    def unwrap_or(self, default: T) -> T:
         """
         Return the result value if it is valid. Otherwise, ``default`` is returned.
         """
@@ -192,8 +175,7 @@ class Result(Generic[T, E]):
 
         return default
 
-    def map(self, fn):
-        # type: (Callable[[T], Result[S, F]]) -> Result[S, F]
+    def map(self, fn: Callable[[T], 'Result[S, F]']) -> 'Result[S, F]':
         """
         Apply given callback to the valid value.
 
@@ -209,8 +191,7 @@ class Result(Generic[T, E]):
 
         return fn(self.unwrap())
 
-    def map_error(self, fn):
-        # type: (Callable[[E], Result[S, F]]) -> Result[S, F]
+    def map_error(self, fn: Callable[[E], 'Result[S, F]']) -> 'Result[S, F]':
         """
         Apply given callback to the invalid value.
 
@@ -228,8 +209,7 @@ class Result(Generic[T, E]):
 
 
 # pylint: disable=invalid-name
-def Ok(value):
-    # type: (T) -> Result[T, E]
+def Ok(value: T) -> Result[T, E]:
     """
     Shortcut function to create a new valid Result.
     """
@@ -238,8 +218,7 @@ def Ok(value):
 
 
 # pylint: disable=invalid-name
-def Error(error):
-    # type: (E) -> Result[T, E]
+def Error(error: E) -> Result[T, E]:
     """
     Shortcut function to create a new error Result.
     """

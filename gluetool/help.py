@@ -31,11 +31,10 @@ from .log import Logging
 
 # Type annotations
 # pylint: disable=unused-import, wrong-import-order
-from typing import TYPE_CHECKING, cast, Any, Callable, Dict, List, Optional, Tuple, Union  # noqa
+from typing import cast, Any, Callable, Dict, List, Optional, Tuple, Union  # noqa
 
-if TYPE_CHECKING:
-    import gluetool  # noqa
-    import gluetool.glue  # noqa
+import gluetool  # noqa
+import gluetool.glue  # noqa
 
 
 # Initialize Sphinx locale settings
@@ -80,23 +79,23 @@ EVAL_CONTEXT_HELP_TEMPLATE = """
 
 # Semantic colorizers
 # pylint: disable=invalid-name
-def C_FUNCNAME(text):
-    # type: (str) -> str
+def C_FUNCNAME(text: str) -> str:
 
+    assert Colors.style is not None
     # pylint: disable=not-callable
     return Colors.style(text, fg='blue', reset=True)
 
 
-def C_ARGNAME(text):
-    # type: (str) -> str
+def C_ARGNAME(text: str) -> str:
 
+    assert Colors.style is not None
     # pylint: disable=not-callable
     return Colors.style(text, fg='blue', reset=True)
 
 
-def C_LITERAL(text):
-    # type: (str) -> str
+def C_LITERAL(text: str) -> str:
 
+    assert Colors.style is not None
     # pylint: disable=not-callable
     return Colors.style(text, fg='cyan', reset=True)
 
@@ -114,30 +113,30 @@ _original_TextTranslator = sphinx.writers.text.TextTranslator
 # pylint: disable=abstract-method
 class TextTranslator(sphinx.writers.text.TextTranslator):  # type: ignore  # no type info in TextTranslator
     # literals, ``foo``
-    def visit_literal(self, node):
-        # type: (Any) -> None
+    def visit_literal(self, node: Any) -> None:
 
+        assert Colors.style is not None
         # pylint: disable=not-callable
         self.add_text(Colors.style('', fg='cyan', reset=False))
 
-    def depart_literal(self, node):
-        # type: (Any) -> None
+    def depart_literal(self, node: Any) -> None:
 
+        assert Colors.style is not None
         # pylint: disable=not-callable
         self.add_text(Colors.style('', reset=True))
 
     # "fields" are used to represent (shared) function parameters
-    def visit_field_name(self, node):
-        # type: (Any) -> None
+    def visit_field_name(self, node: Any) -> None:
 
         _original_TextTranslator.visit_field_name(self, node)
 
+        assert Colors.style is not None
         # pylint: disable=not-callable
         self.add_text(Colors.style('', fg='blue', reset=False))
 
-    def depart_field_name(self, node):
-        # type: (Any) -> None
+    def depart_field_name(self, node: Any) -> None:
 
+        assert Colors.style is not None
         # pylint: disable=not-callable
         self.add_text(Colors.style('', reset=True))
 
@@ -149,16 +148,16 @@ sphinx.writers.text.TextTranslator = TextTranslator
 
 # Custom help formatter that let's us control line length
 class LineWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
-    def __init__(self, *args, **kwargs):
-        # type: (*Any, **Any) -> None
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
 
         if kwargs.get('width', None) is None:
             kwargs['width'] = CROP_WIDTH
 
         super(LineWrapRawTextHelpFormatter, self).__init__(*args, **kwargs)
 
-    def _split_lines(self, text, width):  # type: ignore  # incompatible with super type because of unicode
-        # type: (str, int) -> List[str]
+    def _split_lines(self,
+                     text: str,
+                     width: int) -> List[str]:  # type: ignore  # incompatible with super type because of unicode
 
         text = ensure_str(self._whitespace_matcher.sub(' ', ensure_str(text)).strip())
 
@@ -170,8 +169,13 @@ class LineWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
 # our docstring to a plain text.
 #
 
-def py_default_role(role, rawtext, text, lineno, inliner, options=None, content=None):
-    # type: (Any, str, str, int, Any, Optional[Any], Optional[Any]) -> Tuple[Any, Any]
+def py_default_role(role: Any,
+                    rawtext: str,
+                    text: str,
+                    lineno: int,
+                    inliner: Any,
+                    options: Optional[Any] = None,
+                    content: Optional[Any] = None) -> Tuple[Any, Any]:
 
     # pylint: disable=unused-argument,too-many-arguments
     """
@@ -186,8 +190,13 @@ for python_role in ('py:class', 'py:meth', 'py:mod'):
     docutils.parsers.rst.roles.register_canonical_role(python_role, py_default_role)
 
 
-def doc_role_handler(role, rawtext, text, lineno, inliner, options=None, context=None):
-    # type: (Any, str, str, int, Any, Optional[Any], Optional[Any]) -> Tuple[Any, Any]
+def doc_role_handler(role: Any,
+                     rawtext: str,
+                     text: str,
+                     lineno: int,
+                     inliner: Any,
+                     options: Optional[Any] = None,
+                     context: Optional[Any] = None) -> Tuple[Any, Any]:
 
     # pylint: disable=unused-argument,too-many-arguments
     """
@@ -229,8 +238,7 @@ class DummyTextBuilder:
     translator_class = None
 
 
-def rst_to_text(text):
-    # type: (str) -> str
+def rst_to_text(text: str) -> str:
 
     """
     Render given text, written with RST, as plain text.
@@ -243,8 +251,7 @@ def rst_to_text(text):
     return ensure_str(docutils.core.publish_string(text, writer=sphinx.writers.text.TextWriter(DummyTextBuilder)))
 
 
-def trim_docstring(docstring):
-    # type: (str) -> str
+def trim_docstring(docstring: str) -> str:
 
     """
     Quoting `PEP 257 <https://www.python.org/dev/peps/pep-0257/#handling-docstring-indentation>`:
@@ -291,8 +298,7 @@ def trim_docstring(docstring):
     return '\n'.join(trimmed)
 
 
-def docstring_to_help(docstring, width=None, line_prefix='    '):
-    # type: (str, Optional[int], str) -> str
+def docstring_to_help(docstring: str, width: Optional[int] = None, line_prefix: str = '    ') -> str:
 
     """
     Given docstring, process and render it as a plain text. This conversion function
@@ -315,7 +321,7 @@ def docstring_to_help(docstring, width=None, line_prefix='    '):
 
     # For each line - which is actually a paragraph, given the text comes from RST - wrap it
     # to fit inside given line length (a bit shorter, there's a prefix for each line!).
-    wrapped_lines = []  # type: List[str]
+    wrapped_lines: List[str] = []
 
     for line in processed.splitlines():
         if line:
@@ -333,8 +339,7 @@ def docstring_to_help(docstring, width=None, line_prefix='    '):
     return '\n'.join(wrapped_lines)
 
 
-def option_help(txt):
-    # type: (str) -> str
+def option_help(txt: str) -> str:
 
     """
     Given option help text, format it to be more suitable for command-line help.
@@ -354,8 +359,7 @@ def option_help(txt):
     return ' '.join(processed.splitlines())
 
 
-def function_help(func, name=None):
-    # type: (Callable[..., Any], Optional[str]) -> Tuple[str, str]
+def function_help(func: Callable[..., Any], name: Optional[str] = None) -> Tuple[str, str]:
 
     """
     Uses function's signature and docstring to generate a plain text help describing
@@ -378,7 +382,7 @@ def function_help(func, name=None):
 
     no_default = object()
 
-    defaults = []  # type: List[Union[str, object]]
+    defaults: List[Union[str, object]] = []
 
     # arguments that don't have default value are assigned our special value to let us tell the difference
     # between "no default" and "None is the default"
@@ -401,17 +405,17 @@ def function_help(func, name=None):
 
             args.append('{}={}'.format(C_ARGNAME(arg), C_LITERAL(cast(str, default))))
 
+    assert Colors.style is not None
+    # pylint: disable=not-callable
     return (
         # signature
         '{}({})'.format(C_FUNCNAME(name), ', '.join(args)),
         # body
-        # pylint: disable=not-callable
         docstring_to_help(func.__doc__) if func.__doc__ else Colors.style('    No help provided :(', fg='red')
     )
 
 
-def functions_help(functions):
-    # type: (List[Tuple[str, Callable[..., Any]]]) -> str
+def functions_help(functions: List[Tuple[str, Callable[..., Any]]]) -> str:
 
     """
     Generate help for a set of functions.
@@ -434,8 +438,8 @@ def functions_help(functions):
     )
 
 
-def extract_eval_context_info(source, logger=None):
-    # type: (gluetool.glue.Configurable, Optional[gluetool.log.ContextAdapter]) -> Dict[str, str]
+def extract_eval_context_info(source: 'gluetool.glue.Configurable',
+                              logger: Optional['gluetool.log.ContextAdapter'] = None) -> Dict[str, str]:
 
     """
     Extract information of evaluation context content from the ``source`` - a module
@@ -522,7 +526,7 @@ def extract_eval_context_info(source, logger=None):
         # within a context of some globals/locals mappings. We give eval our custom locals mapping, which will
         # result in __content__ being created in it - and we can just pick it up from this mapping when eval
         # is done.
-        module_locals = {}  # type: Dict[str, Any]
+        module_locals: Dict[str, Any] = {}
 
         # this should be reasonably safe, don't raise a warning then...
         # pylint: disable=eval-used
@@ -539,8 +543,7 @@ def extract_eval_context_info(source, logger=None):
         return {}
 
 
-def eval_context_help(source):
-    # type: (gluetool.glue.Configurable) -> str
+def eval_context_help(source: 'gluetool.glue.Configurable') -> str:
 
     """
     Generate and format help for an evaluation context of a module. Looks for context content,

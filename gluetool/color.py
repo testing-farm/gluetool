@@ -17,28 +17,26 @@ try:
     _FG_COLORS = ('red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white')
     _BG_COLORS = ('black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white')
 
-    _FG = {
+    _FG: Dict[str, str] = {
         color: getattr(colorama.Fore, color.upper()) for color in _FG_COLORS
-    }  # type: Dict[str, str]
+    }
 
-    _BG = {
+    _BG: Dict[str, str] = {
         color: getattr(colorama.Back, color.upper()) for color in _BG_COLORS
-    }  # type: Dict[str, str]
+    }
 
 except ImportError:
     COLOR_SUPPORT = False
 
 
-def _style_plain(text, **kwargs):
-    # type: (str, **str) -> str
+def _style_plain(text: str, **kwargs: str) -> str:
 
     # pylint: disable=unused-argument
     return text
 
 
 # pylint: disable=invalid-name
-def _style_colors(text, fg=None, bg=None, reset=True):
-    # type: (str, Optional[str], Optional[str], Optional[bool]) -> str
+def _style_colors(text: str, fg: Optional[str] = None, bg: Optional[str] = None, reset: Optional[bool] = True) -> str:
 
     fg_code = getattr(colorama.Fore, fg.upper()) if fg in _FG_COLORS else ''
     bg_code = getattr(colorama.Back, bg.upper()) if bg in _BG_COLORS else ''
@@ -52,11 +50,10 @@ def _style_colors(text, fg=None, bg=None, reset=True):
 class Colors(object):
     # pylint: disable=too-few-public-methods
 
-    style = None  # type: Callable[..., str]
+    style: Optional[Callable[..., str]] = None
 
 
-def switch(enabled):
-    # type: (bool) -> None
+def switch(enabled: bool) -> None:
 
     """
     Enable or disable output colors.

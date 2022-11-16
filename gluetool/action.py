@@ -65,10 +65,9 @@ except ImportError:
 
 # Type annotations
 # pylint: disable=unused-import, wrong-import-order
-from typing import TYPE_CHECKING, cast, Any, Dict, Generator, Iterator, List, Optional, Union  # noqa
+from typing import cast, Any, Dict, Generator, Iterator, List, Optional, Union  # noqa
 
-if TYPE_CHECKING:
-    from .log import ContextAdapter  # noqa
+from .log import ContextAdapter  # noqa
 
 TracingClientType = Any  # pylint: disable=invalid-name
 
@@ -96,11 +95,14 @@ class Tracer(object):
     """
     # pylint: disable=too-few-public-methods
 
-    TRACER = None  # type: Optional[TracingClientType]
+    TRACER: Optional[TracingClientType] = None
 
     # pylint: disable=too-many-arguments
-    def __init__(self, service_name=None, logger=None, reporting_host=None, reporting_port=None):
-        # type: (Optional[str], Optional[ContextAdapter], Optional[str], Optional[int]) -> None
+    def __init__(self,
+                 service_name: Optional[str] = None,
+                 logger: Optional[ContextAdapter] = None,
+                 reporting_host: Optional[str] = None,
+                 reporting_port: Optional[int] = None) -> None:
 
         if not tracing_client or os.getenv(TRACING_DISABLE_ENVVAR):
             return
@@ -137,8 +139,7 @@ class Tracer(object):
 
         Tracer.TRACER = config.initialize_tracer()
 
-    def close(self, flush_timeout=None, logger=None):
-        # type: (Optional[int], Optional[ContextAdapter]) -> None
+    def close(self, flush_timeout: Optional[int] = None, logger: Optional[ContextAdapter] = None) -> None:
         """
         Close the tracer - after this point, no spans won't be submitted to the remote service.
 
@@ -167,8 +168,7 @@ class Tracer(object):
 
         future = Tracer.TRACER.close()
 
-        def _check_flush():
-            # type: () -> Result[bool, str]
+        def _check_flush() -> Result[bool, str]:
 
             return Result.Ok(True) if future.done() else Result.Error('flush pending')
 
@@ -200,8 +200,7 @@ class Action(object):
     _thread_actions = threading.local()
 
     @staticmethod
-    def _action_stack():
-        # type: () -> List[Action]
+    def _action_stack() -> List['Action']:
         """
         Return current - or create an empty new one - list of unfinished actions of the current thread.
         """
@@ -215,8 +214,7 @@ class Action(object):
         )
 
     @staticmethod
-    def _add_action(action):
-        # type: (Action) -> None
+    def _add_action(action: 'Action') -> None:
         """
         Add action on top of the list of unfinished actions of the current thread.
         """
@@ -224,8 +222,7 @@ class Action(object):
         Action._action_stack().append(action)
 
     @staticmethod
-    def _drop_action(action):
-        # type: (Action) -> None
+    def _drop_action(action: 'Action') -> None:
         """
         Drop action from the list of unfinished actions of the current thread.
         """
@@ -241,8 +238,7 @@ class Action(object):
             raise GlueError('Cannot remove action {}, it is not active'.format(action)) from exc
 
     @staticmethod
-    def current_action():
-        # type: () -> Action
+    def current_action() -> 'Action':
         """
         Return the top-most - "current" - unfinished action of the current thread.
         """
@@ -255,8 +251,7 @@ class Action(object):
         return stack[-1]
 
     @staticmethod
-    def set_thread_root(action):
-        # type: (Action) -> None
+    def set_thread_root(action: 'Action') -> None:
         """
         Initialize list of unfinished action of the current thread with a given transaction.
 
@@ -277,8 +272,11 @@ class Action(object):
         # We shouldn't replace the list itself, only its content.
         Action._action_stack()[:] = [action]
 
-    def __init__(self, label, parent=None, tags=None, logger=None):
-        # type: (str, Optional[Action], Optional[Dict[Any, Any]], Optional[ContextAdapter]) -> None
+    def __init__(self,
+                 label: str,
+                 parent: Optional['Action'] = None,
+                 tags: Optional[Dict[Any, Any]] = None,
+                 logger: Optional[ContextAdapter] = None) -> None:
 
         self.label = label
         self.logger = logger or Logging.get_logger()
@@ -293,7 +291,7 @@ class Action(object):
             else:
                 parent_span = None
 
-            self.span = Tracer.TRACER.start_span(label, child_of=parent_span, tags=tags)  # type: Any
+            self.span: Any = Tracer.TRACER.start_span(label, child_of=parent_span, tags=tags)
 
         else:
             self.span = None
@@ -307,16 +305,14 @@ class Action(object):
             datetime.datetime.now().strftime('%s.%f')
         ))
 
-    def __repr__(self):
-        # type: () -> str
+    def __repr__(self) -> str:
 
         return 'Action({}, parent={})'.format(
             self.label,
             self.parent.label if self.parent else 'unknown'
         )
 
-    def finish(self):
-        # type: () -> None
+    def finish(self) -> None:
         """
         Complete the action.
         """
@@ -333,26 +329,22 @@ class Action(object):
             datetime.datetime.now().strftime('%s.%f')
         ))
 
-    def __enter__(self):
-        # type: () -> Action
+    def __enter__(self) -> 'Action':
 
         return self
 
-    def __exit__(self, *args, **kwargs):
-        # type: (*Any, **Any) -> None
+    def __exit__(self, *args: Any, **kwargs: Any) -> None:
 
         self.finish()
 
-    def set_tag(self, name, value):
-        # type: (str, Any) -> None
+    def set_tag(self, name: str, value: Any) -> None:
 
         self.tags[name] = value
 
         if self.span:
             self.span.set_tag(name, value)
 
-    def set_tags(self, tags):
-        # type: (Dict[str, Any]) -> None
+    def set_tags(self, tags: Dict[str, Any]) -> None:
 
         for name, value in iteritems(tags):
             self.set_tag(name, value)
