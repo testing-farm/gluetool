@@ -175,6 +175,7 @@ def test_module_instantiate():
     glue = NonLoadingGlue()
     mod = DummyModule(glue, 'module')
 
+    assert glue.pipeline_cancelled == False
     assert mod.glue == glue
 
     # pylint: disable=protected-access,no-member
@@ -184,6 +185,7 @@ def test_module_instantiate():
     assert mod.warn == mod.logger.warning
     assert mod.error == mod.logger.error
     assert mod.exception == mod.logger.exception
+    assert mod.pipeline_cancelled == False
 
     # pylint: disable-msg=protected-access
     assert not mod._config

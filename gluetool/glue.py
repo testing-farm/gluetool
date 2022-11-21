@@ -1652,6 +1652,15 @@ class Module(Configurable):
 
         return self.glue.run_module(module, args or [])
 
+    @property
+    def pipeline_cancelled(self) -> bool:
+        """
+        Returns `True` if pipeline is cancelled.
+        Useful signal for modules using threads to finish as early as possible.
+        """
+
+        return self.glue.pipeline_cancelled
+
 
 #: Describes one discovered ``gluetool`` module.
 #:
@@ -2375,6 +2384,9 @@ class Glue(Configurable):
 
         # pylint: disable=protected-access
         self.current_pipeline._add_shared('eval_context', self, self._eval_context)
+
+        # Marks pipeline cancelled by signals, useful for modules using threads
+        self.pipeline_cancelled = False
 
     # pylint: disable=arguments-differ
     def parse_config(self, paths: List[str]) -> None:  # type: ignore  # signature differs on purpose

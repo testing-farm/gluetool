@@ -302,6 +302,9 @@ Will try to submit it to Sentry but giving up on everything else.
 
             Glue.warn(msg)
 
+            # Provide a flag for modules to check if they should try to finish as early as possible
+            Glue.pipeline_cancelled = True
+
             if handler is not None:
                 return handler(signum, frame)
 
