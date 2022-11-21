@@ -11,7 +11,7 @@ import sys
 
 import jinja2
 from jinja2.utils import Markup
-from six import PY2, ensure_str
+from six import ensure_str
 
 from .log import format_dict
 
@@ -432,11 +432,8 @@ def main():
         output_stream = sys.stdout
 
     else:
-        if PY2:
-            output_stream = cast(IO[str], io.open(args.output, 'w'))
-
-        else:
-            output_stream = cast(TextIO, io.open(args.output, 'w'))
+        # pylint: disable=consider-using-with
+        output_stream = cast(TextIO, io.open(args.output, 'w'))
 
     jinja_env = jinja2.Environment(extensions=['jinja2.ext.loopcontrols'])
     template = jinja_env.from_string(TEMPLATE)

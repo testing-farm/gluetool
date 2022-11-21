@@ -233,12 +233,12 @@ class Action(object):
         try:
             Action._action_stack().remove(action)
 
-        except ValueError:
+        except ValueError as exc:
             # Avoid circullar imports (and make pylint silent)
             # pylint: disable=cyclic-import
             from .glue import GlueError
 
-            raise GlueError('Cannot remove action {}, it is not active'.format(action))
+            raise GlueError('Cannot remove action {}, it is not active'.format(action)) from exc
 
     @staticmethod
     def current_action():

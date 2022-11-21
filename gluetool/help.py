@@ -206,7 +206,7 @@ docutils.parsers.rst.roles.register_canonical_role('doc', doc_role_handler)
 
 
 class DummyTextBuilder:
-    # pylint: disable=too-few-public-methods,no-init,bad-option-value,old-style-class
+    # pylint: disable=too-few-public-methods,bad-option-value,old-style-class
 
     """
     Sphinx ``TextWriter`` (and other writers as well) requires an instance of ``Builder``

@@ -85,14 +85,12 @@ class Gluetool(object):
     def _version(self):
         # type: () -> str
 
-        # pylint: disable=no-self-use
         from .version import __version__
 
         return ensure_str(__version__.strip())
 
     def _deduce_pipeline_desc(self, argv, modules):
         # type: (List[Any], List[str]) -> List[gluetool.glue.PipelineStepModule]
-        # pylint: disable=no-self-use
 
         """
         Split command-line arguments, left by ``gluetool``, into a pipeline description, splitting them
@@ -150,7 +148,6 @@ class Gluetool(object):
     def _exit_logger(self):
         # type: () -> Union[logging.Logger, gluetool.log.ContextAdapter]
 
-        # pylint: disable=no-self-use
         """
         Return logger for use when finishing the ``gluetool`` pipeline.
         """

@@ -77,10 +77,10 @@ class Sentry(object):
                     tag, env_var = pair.split('=')
                     self._tag_map[env_var.strip()] = tag.strip()
 
-            except ValueError:
+            except ValueError as exc:
                 raise gluetool.glue.GlueError(
                     'Cannot parse content of {} environment variable'.format(tags_map_env_var)
-                )
+                ) from exc
 
         if not dsn_env_var:
             return

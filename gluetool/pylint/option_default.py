@@ -98,8 +98,6 @@ class OptionDefaultChecker(BaseChecker):
 
     @utils.check_messages(MESSAGE_ID_NO_DEFAULT, MESSAGE_ID_NO_DEFAULT_IN_HELP, MESSAGE_ID_HARD_DEFAULT)
     def visit_module(self, node):
-        # pylint: disable=no-self-use
-
         # One of the first nodes the checker hits is the Module. Before inspecting any calls
         # to self.option, we must inspect it and find option definitions because there might
         # calls to gluetool module's option() method - in helper classes of functions, for example

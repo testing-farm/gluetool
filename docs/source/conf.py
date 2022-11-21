@@ -61,9 +61,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'gluetool'
-copyright = u'2017, mprchlik@redhat.com, mvadkert@redhat.com and others'
-author = u'mprchlik@redhat.com, mvadkert@redhat.com and others'
+project = 'gluetool'
+copyright = '2017, mprchlik@redhat.com, mvadkert@redhat.com and others'
+author = 'mprchlik@redhat.com, mvadkert@redhat.com and others'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -143,8 +143,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'gluetool.tex', u'gluetool Documentation',
-     u'mvadkerti@redhat.com', 'manual'),
+    (master_doc, 'gluetool.tex', 'gluetool Documentation',
+     'mvadkerti@redhat.com', 'manual'),
 ]
 
 
@@ -153,7 +153,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'gluetool', u'gluetool Documentation',
+    (master_doc, 'gluetool', 'gluetool Documentation',
      [author], 1)
 ]
 
@@ -164,7 +164,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'gluetool', u'gluetool Documentation',
+    (master_doc, 'gluetool', 'gluetool Documentation',
      author, 'gluetool', 'One line description of project.',
      'Miscellaneous'),
 ]

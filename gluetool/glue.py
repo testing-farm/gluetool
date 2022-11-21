@@ -4,7 +4,6 @@ import argparse
 import collections
 import ast
 import enum
-import imp
 import inspect
 import logging
 import os
@@ -12,6 +11,9 @@ import sys
 import warnings
 import configparser
 import io
+
+# pylint: disable=deprecated-module
+import imp
 
 from functools import partial
 
@@ -145,8 +147,6 @@ class GlueError(Exception):
     def submit_to_sentry(self):
         # type: () -> bool
 
-        # pylint: disable=no-self-use
-
         """
         Decide whether the exception should be submitted to Sentry or not. By default,
         all exceptions are submitted. Exception listed in `no_sentry_exceptions` are not submitted.
@@ -164,7 +164,6 @@ class GlueError(Exception):
     def sentry_fingerprint(self, current):
         # type: (List[str]) -> List[str]
 
-        # pylint: disable=no-self-use
         """
         Default grouping of events into issues might be too general for some cases.
         This method gives users a chance to provide custom fingerprint Sentry could
@@ -197,7 +196,6 @@ class GlueError(Exception):
     def sentry_tags(self, current):
         # type: (Dict[str, str]) -> Dict[str, str]
 
-        # pylint: disable=no-self-use
         """
         Add, modify or remove tags attached to a Sentry event, reported when the exception
         was raised.
@@ -312,8 +310,8 @@ def retry(*args):
                 func(obj, *fargs, **fkwargs)
             except args as e:
                 if isinstance(e, GlueError):
-                    raise GlueRetryError(e.value)  # type: ignore
-                raise GlueRetryError(e)
+                    raise GlueRetryError(e.value) from e  # type: ignore
+                raise GlueRetryError(e) from e
         return func_wrapper
     return wrap
 
@@ -696,8 +694,6 @@ class Pipeline(LoggerMixin, object):
             # instance we can log, submit to Sentry and return to break the loop in `_for_each_module`.
             # The failure would then be propagated to `run()` method and it would represent the cause
             # that killed the pipeline.
-
-            # pylint: disable=bad-continuation
             with Action(
                 'executing module',
                 parent=self.action,
@@ -749,7 +745,6 @@ class Pipeline(LoggerMixin, object):
 
             # We get either `None` or a failure if an exception was raised by `destroy`. If it's a failure,
             # we can log it with a bit more context.
-            # pylint: disable=bad-continuation
             with Action(
                 'destroying module',
                 parent=self.action,
@@ -1102,7 +1097,7 @@ class Configurable(LoggerMixin, object):
                             params['type'].__name__,
                             str(exc)
                         )
-                    )
+                    ) from exc
 
             # Ensure string options are not `unicode` in python-2
             if isinstance(value, text_type):
@@ -1158,6 +1153,7 @@ class Configurable(LoggerMixin, object):
                     final_names = ('--{}'.format(name),)
 
                 else:
+                    # pylint: disable=consider-using-generator
                     final_names = ('-{}'.format(names[0]),) + tuple(['--{}'.format(n) for n in names[1:]])
 
             parser.add_argument(*final_names, **params)
@@ -1475,19 +1471,17 @@ class CallbackModule(mock.MagicMock):  # type: ignore  # MagicMock has type Any,
     def sanity(self):
         # type: () -> None
 
-        # pylint: disable-msg=no-self-use
         return None
 
     def destroy(self, failure=None):
         # type: (Optional[Failure]) -> None
 
-        # pylint: disable-msg=no-self-use,unused-argument
+        # pylint: disable-msg=unused-argument
         return None
 
     def check_required_options(self):
         # type: () -> None
 
-        # pylint: disable-msg=no-self-use
         return None
 
 
@@ -1699,7 +1693,6 @@ class Module(Configurable):
     def sanity(self):
         # type: () -> None
 
-        # pylint: disable-msg=no-self-use
         """
         In this method, modules can define additional checks before execution.
 
@@ -1714,7 +1707,6 @@ class Module(Configurable):
     def execute(self):
         # type: () -> None
 
-        # pylint: disable-msg=no-self-use
         """
         In this method, modules can perform any work they deemed necessary for
         completing their purpose. E.g. if the module promises to run some tests,
@@ -1726,7 +1718,7 @@ class Module(Configurable):
     def destroy(self, failure=None):
         # type: (Optional[Failure]) -> None
 
-        # pylint: disable-msg=no-self-use,unused-argument
+        # pylint: disable-msg=unused-argument
         """
         Here should go any code that needs to be run on exit, like job cleanup etc.
 
@@ -2049,7 +2041,7 @@ class Glue(Configurable):
 
             raise GlueError(msg)
 
-        return all([_check(name) for name in names])
+        return all(_check(name) for name in names)
 
     def get_shared(self, funcname):
         # type: (str) -> Optional[SharedType]
@@ -2280,7 +2272,7 @@ class Glue(Configurable):
 
         # pylint: disable=broad-except
         except Exception as e:
-            raise GlueError("Unable to check check module file '{}': {}".format(filepath, e))
+            raise GlueError("Unable to check check module file '{}': {}".format(filepath, e)) from e
 
     def _do_import_pm(self, filepath, pm_name):
         # type: (str, str) -> Any
@@ -2308,7 +2300,7 @@ class Glue(Configurable):
 
         # pylint: disable=broad-except
         except Exception as exc:
-            raise GlueError("Unable to import file '{}' as a module: {}".format(filepath, exc))
+            raise GlueError("Unable to import file '{}' as a module: {}".format(filepath, exc)) from exc
 
     def _import_pm(self, filepath, pm_name):
         # type: (str, str) -> Any

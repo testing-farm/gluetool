@@ -64,8 +64,6 @@ class OptionNameMatchChecker(BaseChecker):
     }
 
     def visit_module(self, node):
-        # pylint: disable=no-self-use
-
         # One of the first nodes the checker hits is the Module. Before inspecting any calls
         # to self.option, we must inspect it and find option definitions because there might be
         # calls to gluetool module's option() method - in helper classes of functions, for example

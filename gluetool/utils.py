@@ -19,16 +19,17 @@ import threading
 import time
 import warnings
 
+from subprocess import DEVNULL
+
+# Python 2/3 compatibility
+import six
+from six import ensure_str, iteritems, iterkeys
+from six.moves import http_client, urllib
+
 import bs4
 import urlnormalizer
 import jinja2
 import requests as original_requests
-
-# Python 2/3 compatibility
-import six
-from six import PY2, ensure_str, iteritems, iterkeys
-from six.moves import http_client, urllib
-
 import ruamel.yaml
 
 from .glue import GlueError, SoftGlueError, GlueCommandError
@@ -49,15 +50,6 @@ if TYPE_CHECKING:
 # Type variable used in generic types
 # pylint: disable=invalid-name
 T = TypeVar('T')
-
-
-if PY2:
-    DEVNULL = io.open(os.devnull, 'wb')
-
-else:
-    # In runtime, it is guarder by `PY2`, but Python 2 Pylint still checks it, and there's no `DEVNULL`
-    # in Python 2... Hence disabling `no-name-in-module`.
-    from subprocess import DEVNULL  # pylint: disable=ungrouped-imports,no-name-in-module
 
 
 # Patch urlnormalizer to support file:// scheme.
@@ -696,6 +688,7 @@ class Command(LoggerMixin, object):
         log_blob(self.debug, 'runnable (copy & paste)', format_command_line([self._command]))
 
         try:
+            # pylint: disable=consider-using-with
             self._process = subprocess.Popen(self._command, **self._popen_kwargs)
 
             if inspect is True:
@@ -706,7 +699,7 @@ class Command(LoggerMixin, object):
 
         except OSError as e:
             if e.errno == errno.ENOENT:
-                raise GlueError("Command '{}' not found".format(ensure_str(self._command[0])))
+                raise GlueError("Command '{}' not found".format(ensure_str(self._command[0]))) from e
 
             raise e
 
@@ -748,8 +741,8 @@ def check_for_commands(cmds):
         try:
             Command(['/bin/bash', '-c', 'command -v {}'.format(cmd)]).run(stdout=DEVNULL)
 
-        except GlueError:
-            raise GlueError("Command '{}' not found on the system".format(ensure_str(cmd)))
+        except GlueError as exc:
+            raise GlueError("Command '{}' not found on the system".format(ensure_str(cmd))) from exc
 
 
 class cached_property(object):
@@ -827,8 +820,8 @@ def format_command_line(cmdline):
 
 
 @deprecated
-def fetch_url(url, logger=None, success_codes=(200,)):
-    # type: (str, Optional[ContextAdapter], Tuple[int, ...]) -> Tuple[Any, str]
+def fetch_url(url, logger=None, success_codes=(200,), timeout=60):
+    # type: (str, Optional[ContextAdapter], Tuple[int, ...], int) -> Tuple[Any, str]
 
     """
     "Get me content of this URL" helper.
@@ -839,6 +832,7 @@ def fetch_url(url, logger=None, success_codes=(200,)):
     :param url: URL to get.
     :param gluetool.log.ContextLogger logger: Logger used for logging.
     :param tuple success_codes: tuple of HTTP response codes representing successfull request.
+    :param int timeout: timeout in seconds for requests.get() method.
     :returns: tuple ``(response, content)`` where ``response`` is what
       :py:func:`requests.get` returns, and ``content`` is the payload
       of the response.
@@ -850,10 +844,10 @@ def fetch_url(url, logger=None, success_codes=(200,)):
 
     try:
         with requests(logger=logger) as req:
-            response = req.get(url)
+            response = req.get(url, timeout=timeout)
 
     except urllib.error.HTTPError as exc:
-        raise GlueError("Failed to fetch URL '{}': {}".format(url, exc))
+        raise GlueError("Failed to fetch URL '{}': {}".format(url, exc)) from exc
 
     if response.status_code not in success_codes:
         raise GlueError("Unsuccessfull response from '{}'".format(url))
@@ -898,7 +892,7 @@ def requests(logger=None):
     # and disable debug logging when leaving the context.
     logger = logger or Logging.get_logger()
 
-    http_client_logger = PackageAdapter(logger, 'httplib') if PY2 else PackageAdapter(logger, 'http_client')
+    http_client_logger = PackageAdapter(logger, 'http_client')
     http_client.HTTPConnection.debuglevel = 1  # type: ignore
 
     # Start capturing ``print`` statements - they are used to provide debug messages, therefore
@@ -1011,7 +1005,7 @@ def render_template(template, logger=None, **kwargs):
         raise GlueError('Unhandled template type {}'.format(type(template)))
 
     except Exception as exc:
-        raise GlueError('Cannot render template: {}'.format(exc))
+        raise GlueError('Cannot render template: {}'.format(exc)) from exc
 
 
 # pylint: disable=invalid-name
@@ -1084,7 +1078,7 @@ def load_yaml(filepath, loader_type=None, logger=None):
         return data
 
     except ruamel.yaml.YAMLError as e:
-        raise GlueError("Unable to load YAML file '{}': {}".format(filepath, e))
+        raise GlueError("Unable to load YAML file '{}': {}".format(filepath, e)) from e
 
 
 def dump_yaml(data, filepath, logger=None):
@@ -1114,7 +1108,7 @@ def dump_yaml(data, filepath, logger=None):
             f.flush()
 
     except ruamel.yaml.YAMLError as e:
-        raise GlueError("Unable to save YAML file '{}': {}".format(filepath, e))
+        raise GlueError("Unable to save YAML file '{}': {}".format(filepath, e)) from e
 
 
 def _json_byteify(data, ignore_dicts=False):
@@ -1186,7 +1180,7 @@ def load_json(filepath, logger=None):
             return data
 
     except Exception as exc:
-        raise GlueError("Unable to load JSON file '{}': {}".format(filepath, exc))
+        raise GlueError("Unable to load JSON file '{}': {}".format(filepath, exc)) from exc
 
 
 def _load_yaml_variables(data, enabled=True, logger=None):
@@ -1236,7 +1230,7 @@ def _load_yaml_variables(data, enabled=True, logger=None):
             variables_map_path = shlex.split(value[2:])[1]
 
         except Exception as exc:
-            raise GlueError("Cannot extract filename to include from '{}': {}".format(value, exc))
+            raise GlueError("Cannot extract filename to include from '{}': {}".format(value, exc)) from exc
 
         logger.debug("loading variables from '{}'".format(variables_map_path))
 
@@ -1309,7 +1303,7 @@ class SimplePatternMap(LoggerMixin, object):
                 pattern = re.compile(pattern)
 
             except re.error as exc:
-                raise GlueError("Pattern '{}' is not valid: {}".format(pattern, exc))
+                raise GlueError("Pattern '{}' is not valid: {}".format(pattern, exc)) from exc
 
             self._compiled_map.append((pattern, result))
 
@@ -1430,7 +1424,7 @@ class PatternMap(LoggerMixin, object):
 
                 except re.error as e:
                     raise GlueError("Cannot transform pattern '{}' with target '{}', repl '{}': {}".format(
-                        pattern.pattern, target, repl, e))
+                        pattern.pattern, target, repl, e)) from e
 
             return _replace
 
@@ -1465,7 +1459,7 @@ class PatternMap(LoggerMixin, object):
                 compiled_pattern = re.compile(pattern)
 
             except re.error as e:
-                raise GlueError("Pattern '{}' is not valid: {}".format(pattern, e))
+                raise GlueError("Pattern '{}' is not valid: {}".format(pattern, e)) from e
 
             compiled_chains = []
 

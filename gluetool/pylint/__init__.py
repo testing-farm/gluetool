@@ -3,6 +3,8 @@ Handy custom PyLint checkers.
 """
 
 import collections
+
+# pylint: disable=deprecated-module
 import imp
 
 import astroid
@@ -45,8 +47,6 @@ class OptionsGatherer(object):
         return gatherer
 
     def visit_assign(self, node):
-        # pylint: disable=no-self-use
-
         # skip anything that's not 'options = ...' on the class level
         if not isinstance(node.targets[0], astroid.AssignName):
             return
