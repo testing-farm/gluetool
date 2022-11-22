@@ -291,7 +291,7 @@ class ThreadAdapter(ContextAdapter):
 
     def __init__(self, logger: Union[logging.Logger, ContextAdapter], thread: threading.Thread) -> None:
 
-        super(ThreadAdapter, self).__init__(logger, {'ctx_thread_name': (5, thread.name)})
+        super().__init__(logger, {'ctx_thread_name': (5, thread.name)})
 
 
 class WorkerThread(LoggerMixin, threading.Thread):
@@ -482,7 +482,7 @@ class Command(LoggerMixin, object):
                  options: Optional[List[str]] = None,
                  logger: Optional[ContextAdapter] = None) -> None:
 
-        super(Command, self).__init__(logger or Logging.get_logger())
+        super().__init__(logger or Logging.get_logger())
 
         self.executable = executable
         self.options: List[str] = options or []
@@ -1244,7 +1244,7 @@ class SimplePatternMap(LoggerMixin, object):
 
     def __init__(self, filepath: str, logger: Optional[ContextAdapter] = None, allow_variables: bool = False) -> None:
 
-        super(SimplePatternMap, self).__init__(logger or Logging.get_logger())
+        super().__init__(logger or Logging.get_logger())
 
         pattern_map = load_yaml(filepath, logger=self.logger)
 
@@ -1365,7 +1365,7 @@ class PatternMap(LoggerMixin, object):
                  allow_variables: bool = False
                 ) -> None:  # noqa
 
-        super(PatternMap, self).__init__(logger or Logging.get_logger())
+        super().__init__(logger or Logging.get_logger())
 
         spices = spices or {}
 

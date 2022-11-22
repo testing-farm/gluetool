@@ -130,7 +130,7 @@ class GlueError(Exception):
                  sentry_tags: Optional[Dict[str, str]] = None,
                  **kwargs: Any) -> None:
 
-        super(GlueError, self).__init__(message, **kwargs)  # type: ignore  # too many arguments but it's fine
+        super().__init__(message, **kwargs)  # type: ignore  # too many arguments but it's fine
 
         self.message = message
 
@@ -250,8 +250,7 @@ class GlueCommandError(GlueError):
 
     def __init__(self, cmd: List[str], output: 'gluetool.utils.ProcessOutput', **kwargs: Any) -> None:
 
-        super(GlueCommandError, self).__init__("Command '{}' failed with exit code {}".format(cmd, output.exit_code),
-                                               **kwargs)
+        super().__init__("Command '{}' failed with exit code {}".format(cmd, output.exit_code), **kwargs)
 
         self.cmd = cmd
         self.output = output
@@ -433,7 +432,7 @@ class PipelineAdapter(ContextAdapter):
 
     def __init__(self, logger: ContextAdapter, pipeline_name: str) -> None:
 
-        super(PipelineAdapter, self).__init__(logger, contexts={'pipeline_name': (5, pipeline_name)})
+        super().__init__(logger, contexts={'pipeline_name': (5, pipeline_name)})
 
 
 class Pipeline(LoggerMixin, object):
@@ -469,7 +468,7 @@ class Pipeline(LoggerMixin, object):
 
         logger = logger or glue.logger
 
-        super(Pipeline, self).__init__(logger)
+        super().__init__(logger)
 
         self.glue = glue
         self.steps = steps
@@ -793,7 +792,7 @@ class NamedPipeline(Pipeline):
 
     def __init__(self, glue: 'Glue', name: str, steps: PipelineStepsType) -> None:
 
-        super(NamedPipeline, self).__init__(glue, steps, logger=PipelineAdapter(glue.logger, name))
+        super().__init__(glue, steps, logger=PipelineAdapter(glue.logger, name))
 
         self.name = name
 
@@ -948,7 +947,7 @@ class Configurable(LoggerMixin, object):
 
     def __init__(self, logger: ContextAdapter) -> None:
 
-        super(Configurable, self).__init__(logger)
+        super().__init__(logger)
 
         # Initialize configuration store
         self._config: Dict[str, Any] = {}
@@ -1386,7 +1385,7 @@ class CallbackModule(mock.MagicMock):  # type: ignore  # MagicMock has type Any,
 
     def __init__(self, name: str, glue: 'Glue', callback: Callable[..., None], *args: Any, **kwargs: Any) -> None:
 
-        super(CallbackModule, self).__init__()
+        super().__init__()
 
         self.glue = glue
         self.name = self.unique_name = name
@@ -1460,7 +1459,7 @@ class Module(Configurable):
         # we need to save the unique name in case there are more aliases available
         self.unique_name = name
 
-        super(Module, self).__init__(ModuleAdapter(glue.logger, self))
+        super().__init__(ModuleAdapter(glue.logger, self))
 
         self.glue = glue
 
@@ -2368,7 +2367,7 @@ class Glue(Configurable):
 
         Logging.setup_logger(sentry=sentry)
 
-        super(Glue, self).__init__(Logging.get_logger())
+        super().__init__(Logging.get_logger())
 
         self.tool = tool
 

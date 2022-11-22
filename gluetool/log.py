@@ -427,7 +427,7 @@ def _extract_stack(tb: Any) -> List[Any]:
 class SingleLogLevelFileHandler(logging.FileHandler):
     def __init__(self, level: int, *args: Any, **kwargs: Any) -> None:
 
-        super(SingleLogLevelFileHandler, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.level = level
 
@@ -436,7 +436,7 @@ class SingleLogLevelFileHandler(logging.FileHandler):
         if not record.levelno == self.level:
             return
 
-        super(SingleLogLevelFileHandler, self).emit(record)
+        super().emit(record)
 
 
 def _move_contexts(src: Dict[str, ContextInfoType], dst: Dict[str, ContextInfoType]) -> None:
@@ -525,7 +525,7 @@ class ContextAdapter(logging.LoggerAdapter):
         # to materialize as record fields, we only want `contexts` field to appear, containing all the contexts.
         _move_contexts(extra, self._contexts)
 
-        super(ContextAdapter, self).__init__(logger, extra)  # type: ignore  # base class expects just Logger
+        super().__init__(logger, extra)  # type: ignore  # base class expects just Logger
 
         self._logger = logger
 
@@ -720,7 +720,7 @@ class ModuleAdapter(ContextAdapter):
 
     def __init__(self, logger: ContextAdapter, module: 'gluetool.glue.Module') -> None:
 
-        super(ModuleAdapter, self).__init__(logger, contexts={'module_name': (10, module.unique_name)})
+        super().__init__(logger, contexts={'module_name': (10, module.unique_name)})
 
 
 class LoggerMixin(object):
@@ -735,7 +735,7 @@ class LoggerMixin(object):
 
     def __init__(self, logger: ContextAdapter, *args: Any, **kwargs: Any) -> None:
 
-        super(LoggerMixin, self).__init__(*args, **kwargs)  # type: ignore  # Too many arguments - it's fine...
+        super().__init__(*args, **kwargs)  # type: ignore  # Too many arguments - it's fine...
 
         self.attach_logger(logger)
 
@@ -766,7 +766,7 @@ class PackageAdapter(ContextAdapter):
 
     def __init__(self, logger: ContextAdapter, name: str) -> None:
 
-        super(PackageAdapter, self).__init__(logger, contexts={'package_name': (50, name)})
+        super().__init__(logger, contexts={'package_name': (50, name)})
 
 
 class LoggingFormatter(logging.Formatter):
@@ -806,7 +806,7 @@ class LoggingFormatter(logging.Formatter):
 
     def __init__(self, colors: bool = True, log_tracebacks: bool = False, prettify: bool = False) -> None:
 
-        super(LoggingFormatter, self).__init__()
+        super().__init__()
 
         self.colors = colors
         self.log_tracebacks = log_tracebacks
@@ -924,7 +924,7 @@ class JSONLoggingFormatter(logging.Formatter):
     def __init__(self, colors: bool = False, log_tracebacks: bool = False, prettify: bool = False) -> None:
         # pylint: disable=unused-argument
 
-        super(JSONLoggingFormatter, self).__init__()
+        super().__init__()
 
         if prettify:
             self._emit = format_dict

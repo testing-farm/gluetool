@@ -153,7 +153,7 @@ class LineWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
         if kwargs.get('width', None) is None:
             kwargs['width'] = CROP_WIDTH
 
-        super(LineWrapRawTextHelpFormatter, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _split_lines(self,
                      text: str,
