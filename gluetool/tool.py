@@ -27,11 +27,12 @@ from .utils import format_command_line, cached_property, normalize_path, render_
 
 # Type annotations
 # pylint: disable=unused-import,wrong-import-order,ungrouped-imports
-from typing import cast, overload, Any, Callable, List, Optional, NoReturn, Union  # noqa
-from typing_extensions import Literal  # noqa
+from typing import cast, overload, Any, Callable, List, Optional, NoReturn, Union, TYPE_CHECKING  # noqa
 from types import FrameType  # noqa
 from gluetool.glue import PipelineReturnType  # noqa
 
+if TYPE_CHECKING:
+    from typing_extensions import Literal  # noqa
 
 # Order is important, the later one overrides values from the former
 DEFAULT_GLUETOOL_CONFIG_PATHS = [
@@ -183,12 +184,12 @@ class Gluetool(object):
 
     # pylint: disable=invalid-name,function-redefined
     @overload
-    def _handle_failure_core(self, failure: gluetool.glue.Failure, do_quit: Literal[True] = True) -> NoReturn:
+    def _handle_failure_core(self, failure: gluetool.glue.Failure, do_quit: 'Literal[True]' = True) -> NoReturn:
 
         pass
 
     @overload  # noqa
-    def _handle_failure_core(self, failure: gluetool.glue.Failure, do_quit: Literal[False]) -> None:  # noqa
+    def _handle_failure_core(self, failure: gluetool.glue.Failure, do_quit: 'Literal[False]') -> None:  # noqa
 
         pass
 
@@ -230,11 +231,11 @@ class Gluetool(object):
 
     # pylint: disable=invalid-name,function-redefined
     @overload
-    def _handle_failure(self, failure: gluetool.glue.Failure, do_quit: Literal[True] = True) -> NoReturn:
+    def _handle_failure(self, failure: gluetool.glue.Failure, do_quit: 'Literal[True]' = True) -> NoReturn:
         pass
 
     @overload  # noqa
-    def _handle_failure(self, failure: gluetool.glue.Failure, do_quit: Literal[False] = False) -> None:  # noqa
+    def _handle_failure(self, failure: gluetool.glue.Failure, do_quit: 'Literal[False]' = False) -> None:  # noqa
 
         pass
 
@@ -294,7 +295,7 @@ Will try to submit it to Sentry but giving up on everything else.
         sigmap = {getattr(signal, name): name for name in [name for name in dir(signal) if name.startswith('SIG')]}
 
         def _signal_handler(signum: int,
-                            frame: FrameType,
+                            frame: Optional[FrameType],
                             handler: Optional[Callable[[int, FrameType], None]] = None,
                             msg: Optional[str] = None) -> Any:
 
@@ -305,7 +306,7 @@ Will try to submit it to Sentry but giving up on everything else.
             # Provide a flag for modules to check if they should try to finish as early as possible
             Glue.pipeline_cancelled = True
 
-            if handler is not None:
+            if handler is not None and frame is not None:
                 return handler(signum, frame)
 
         def _sigusr1_handler(signum: int, frame: FrameType) -> None:

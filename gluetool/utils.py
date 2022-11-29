@@ -1054,7 +1054,7 @@ def load_yaml(filepath: str, loader_type: Optional[str] = None, logger: Optional
 
         return data
 
-    except ruamel.yaml.YAMLError as e:
+    except ruamel.yaml.error.YAMLError as e:
         raise GlueError("Unable to load YAML file '{}': {}".format(filepath, e)) from e
 
 
@@ -1083,7 +1083,7 @@ def dump_yaml(data: Any, filepath: str, logger: Optional[ContextAdapter] = None)
             YAML().dump(data, f)
             f.flush()
 
-    except ruamel.yaml.YAMLError as e:
+    except ruamel.yaml.error.YAMLError as e:
         raise GlueError("Unable to save YAML file '{}': {}".format(filepath, e)) from e
 
 

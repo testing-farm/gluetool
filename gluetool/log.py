@@ -51,8 +51,7 @@ from .color import Colors
 
 # Type annotations
 # pylint: disable=unused-import,wrong-import-order,line-too-long
-from typing import TYPE_CHECKING, Any, AnyStr, Callable, Dict, Iterable, List, MutableMapping, Optional, Tuple, Type, Union  # noqa
-from typing_extensions import Protocol  # noqa
+from typing import TYPE_CHECKING, Any, AnyStr, Callable, Dict, Iterable, List, MutableMapping, Optional, Tuple, Type, Union, cast  # noqa
 from types import TracebackType  # noqa
 from mypy_extensions import Arg, DefaultArg, NamedArg, DefaultNamedArg, VarArg, KwArg  # noqa
 import bs4  # noqa
@@ -61,6 +60,15 @@ if TYPE_CHECKING:
     # pylint: disable=cyclic-import
     import gluetool  # noqa
     import gluetool.sentry  # noqa
+
+    # LoggerAdapter and StreamHandler are generic types in Python 3.11, but they are not subscriptable in earlier
+    # versions. See https://github.com/python/typeshed/issues/7855
+    _LoggerAdapter = logging.LoggerAdapter[logging.Logger]
+    _StreamHandler = logging.StreamHandler[Any]
+
+else:
+    _LoggerAdapter = logging.LoggerAdapter
+    _StreamHandler = logging.StreamHandler
 
 # Type definitions
 # pylint: disable=invalid-name,unsubscriptable-object
@@ -288,7 +296,7 @@ def format_table(table: Iterable[Iterable[str]], **kwargs: Any) -> str:
     :returns: formatted table.
     """
 
-    return tabulate.tabulate(table, **kwargs)
+    return cast(str, tabulate.tabulate(table, **kwargs))
 
 
 def format_xml(element: bs4.BeautifulSoup) -> str:
@@ -462,7 +470,7 @@ def _add_thread_context(contexts: Dict[str, ContextInfoType], record: logging.Lo
     contexts['thread_name'] = (0, thread_name)
 
 
-class ContextAdapter(logging.LoggerAdapter):
+class ContextAdapter(_LoggerAdapter):
     """
     Generic logger adapter that collects "contexts", and prepends them
     to the message.
@@ -1039,7 +1047,7 @@ class Logging(object):
     logger = None  # logging.Logger
 
     #: Stream handler printing out to stderr.
-    stderr_handler: Optional[logging.StreamHandler] = None
+    stderr_handler: Optional[_StreamHandler] = None
 
     debug_file_handler = None
     verbose_file_handler = None
