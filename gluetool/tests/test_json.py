@@ -7,6 +7,7 @@ import string
 import pytest
 import six
 
+import hypothesis
 from hypothesis import assume, given, strategies as st
 from . import create_file, create_json
 

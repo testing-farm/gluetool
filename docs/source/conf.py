@@ -191,6 +191,7 @@ sphinx.environment.BuildEnvironment.warn_node = _warn_node
 
 
 # Include module description as a part of documentation
+# pylint: disable=too-many-ancestors
 class ModuleDescriptionDocumenter(sphinx.ext.autodoc.DataDocumenter):
     objtype = "moddesc"
     content_indent = ""

@@ -19,6 +19,7 @@ import docutils.core
 import docutils.nodes
 import docutils.parsers.rst
 import docutils.writers
+import sphinx.builders.text
 import sphinx.writers.text
 import sphinx.locale
 import sphinx.util.nodes
@@ -31,14 +32,13 @@ from .log import Logging
 
 # Type annotations
 # pylint: disable=unused-import, wrong-import-order
-from typing import cast, Any, Callable, Dict, List, Optional, Tuple, Union  # noqa
+from typing import cast, Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING, Union  # noqa
 
 import gluetool  # noqa
 import gluetool.glue  # noqa
 
-
-# Initialize Sphinx locale settings
-sphinx.locale.init([os.path.split(sphinx.locale.__file__)], None)
+if TYPE_CHECKING:
+    from sphinx.builders.text import TextBuilder
 
 # If not told otherwise, the default maximal length of lines is this many columns.
 DEFAULT_WIDTH = 120
@@ -111,7 +111,7 @@ _original_TextTranslator = sphinx.writers.text.TextTranslator
 
 
 # pylint: disable=abstract-method
-class TextTranslator(sphinx.writers.text.TextTranslator):  # type: ignore  # no type info in TextTranslator
+class TextTranslator(sphinx.writers.text.TextTranslator):  # type: ignore
     # literals, ``foo``
     def visit_literal(self, node: Any) -> None:
 
@@ -143,7 +143,7 @@ class TextTranslator(sphinx.writers.text.TextTranslator):  # type: ignore  # no 
         _original_TextTranslator.depart_field_name(self, node)
 
 
-sphinx.writers.text.TextTranslator = TextTranslator
+sphinx.writers.text.TextTranslator = TextTranslator  # type: ignore
 
 
 # Custom help formatter that let's us control line length
@@ -233,6 +233,15 @@ class DummyTextBuilder:
 
         text_newlines = '\n'
         text_sectionchars = '*=-~"+`'
+        text_add_secnumbers = False
+        text_secnumber_suffix = ' '
+
+    @staticmethod
+    def create_translator(
+        document: docutils.nodes.document,
+        builder: 'TextBuilder'
+    ) -> docutils.nodes.NodeVisitor:
+        return TextTranslator(document, builder)
 
     config = DummyConfig
     translator_class = None
@@ -248,7 +257,9 @@ def rst_to_text(text: str) -> str:
     :returns: plain text representation of ``text``.
     """
 
-    return ensure_str(docutils.core.publish_string(text, writer=sphinx.writers.text.TextWriter(DummyTextBuilder)))
+    return ensure_str(
+        docutils.core.publish_string(text, writer=sphinx.writers.text.TextWriter(DummyTextBuilder))  # type: ignore
+    )
 
 
 def trim_docstring(docstring: str) -> str:

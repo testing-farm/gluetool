@@ -6,8 +6,9 @@
     log_path: "{{ generate_dir }}/build/sphinx_build_stderr.log"
     clean: false
     static_rst:
+      - source/features.rst
       - source/framework.rst
-      - source/modules.rst
+      - source/howto-modules.rst
       - source/howto-tests.rst
       - source/howto-docs.rst
       - source/index.rst

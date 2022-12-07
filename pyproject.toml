@@ -49,7 +49,7 @@ python = "~3.7.2 || ~3.8 || ~3.9"
 beautifulsoup4 = "*"
 colorama = "*"
 configparser = "*"
-docutils = "^0.14"
+docutils = "*"
 Jinja2 = "*"
 lxml = "*"
 mock = "*"
@@ -59,7 +59,7 @@ requests-toolbelt = "*"
 "ruamel.yaml" = "^0.16.12"
 six = "*"
 # Our text coloring depends on Sphinx having some attributes, newer versions changed their internals :/
-Sphinx = "~1.5.2"
+Sphinx = "*"
 tabulate = "*"
 urlnormalizer = "*"
 # While *mypy* is a tool to check type annotations, *mypy-extensions* is a package that brings extensions
@@ -72,7 +72,8 @@ MarkupSafe = "1.1.1"
 
 [tool.poetry.dev-dependencies]
 attrs = "*"
-flake8 = "*"
+# flake8 5 introduced a bug https://github.com/tholo/pytest-flake8/issues/87
+flake8 = "<5.0.0"
 lazy-object_proxy = "*"
 hypothesis = "*"
 importlib-metadata = "*"
