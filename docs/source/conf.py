@@ -202,12 +202,12 @@ class ModuleDescriptionDocumenter(sphinx.ext.autodoc.DataDocumenter):
 
 
 def run_apidoc(_):
-    from sphinx.apidoc import main
+    from sphinx.ext.apidoc import main
 
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     module = os.path.join(cur_dir, '..', '..', 'gluetool')
-    main([None, '-e', '-o', cur_dir, module, '--force'])
+    main(['-e', '-o', cur_dir, module, '--force'])
 
 
 def setup(app):

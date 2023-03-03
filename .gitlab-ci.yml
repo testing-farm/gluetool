@@ -65,3 +65,10 @@ py39-static:
 py39-unit:
   extends: .tests
   script: tox -e py39-unit-tests
+
+py39-docs:
+  extends: .tests
+  script: tox -e py39-docs
+  artifacts:
+    paths:
+      - docs/build/html

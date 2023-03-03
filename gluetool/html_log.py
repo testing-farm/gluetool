@@ -10,7 +10,7 @@ import re
 import sys
 
 import jinja2
-from jinja2.utils import Markup
+from markupsafe import Markup
 from six import ensure_str
 
 from .log import format_dict
@@ -301,7 +301,7 @@ def _snippet_filter(ctx: Any, filepath: str, lineno: int, syntax: str, window: i
                         line_highlight=lineno)
 
 
-@jinja2.contextfilter  # type: ignore
+@jinja2.pass_environment
 def file_content_filter(ctx: Any, value: str) -> Union[str, Markup]:
     # pylint: disable=unused-argument
     """
@@ -316,7 +316,7 @@ def file_content_filter(ctx: Any, value: str) -> Union[str, Markup]:
         return Markup(f.read())
 
 
-@jinja2.evalcontextfilter  # type: ignore
+@jinja2.pass_environment
 def message_filter(ctx: Any, value: str) -> Union[str, Markup]:
     """
     Return slightly escaped log message to make it keep its formatting in HTML.
@@ -336,7 +336,7 @@ def message_filter(ctx: Any, value: str) -> Union[str, Markup]:
     return result
 
 
-@jinja2.evalcontextfilter  # type: ignore
+@jinja2.pass_environment
 def json_filter(ctx: Any, value: str) -> Union[str, Markup]:
     """
     Return highlighted JSON code.
@@ -355,7 +355,7 @@ def json_filter(ctx: Any, value: str) -> Union[str, Markup]:
 #     return _code_filter(ctx, value, 'python', line_numbers=line_numbers, line_start=line_start)
 
 
-@jinja2.evalcontextfilter  # type: ignore
+@jinja2.pass_environment
 def python_snippet_filter(ctx: Any, filepath: str, lineno: int) -> Union[str, Markup]:
     """
     :param ctx: render context governed by Jinja.
