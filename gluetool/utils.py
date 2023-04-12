@@ -31,6 +31,7 @@ import urlnormalizer
 import jinja2
 import requests as original_requests
 import ruamel.yaml
+import cattrs
 
 from .glue import GlueError, SoftGlueError, GlueCommandError
 from .result import Result
@@ -40,7 +41,7 @@ from .log import Logging, ContextAdapter, PackageAdapter, LoggerMixin, BlobLogge
 # Type annotations
 # pylint: disable=unused-import, wrong-import-order
 from typing import IO, cast  # noqa
-from typing import Any, Callable, Deque, Dict, List, Optional, Pattern, Tuple, TypeVar, Union  # noqa
+from typing import Any, Callable, Deque, Dict, List, Optional, Pattern, Tuple, TypeVar, Union, Type, overload  # noqa
 from .log import LoggingFunctionType  # noqa
 
 import logging  # noqa
@@ -1020,7 +1021,38 @@ def from_yaml(yaml_string: str, loader_type: Optional[str] = None) -> Any:
     return YAML(loader_type).load(yaml_string)
 
 
-def load_yaml(filepath: str, loader_type: Optional[str] = None, logger: Optional[ContextAdapter] = None) -> Any:
+def create_cattrs_unserializer(cls: Type[T], converter: Optional[cattrs.Converter] = None) -> Callable[[Any], T]:
+    """
+    Create a function which unserializes data into attrs-class modelled structures using cattrs library.
+    Intended to be used with `load_yaml()` function as its `unserialize` parameter.
+
+    :param type cls: type representing the data structure
+    :param cattrs.Converter converter: optional custom `cattrs` converter
+    :returns: function for unserializing data into class-based structure
+    """
+
+    converter = converter or cattrs.global_converter
+
+    def unserializer(data: Any) -> T:
+        assert converter
+        return converter.structure(data, cls)
+    return unserializer
+
+
+@overload
+def load_yaml(filepath: str, loader_type: Optional[str] = None, logger: Optional[ContextAdapter] = None,
+              unserialize: None = None) -> Any:
+    pass
+
+
+@overload
+def load_yaml(filepath: str, loader_type: Optional[str] = None, logger: Optional[ContextAdapter] = None,
+              *, unserialize: Callable[[Any], T]) -> T:
+    pass
+
+
+def load_yaml(filepath: str, loader_type: Optional[str] = None, logger: Optional[ContextAdapter] = None,
+              unserialize: Optional[Callable[[Any], T]] = None) -> Any:
 
     """
     Load data stored in YAML file, and return their Python representation.
@@ -1029,6 +1061,8 @@ def load_yaml(filepath: str, loader_type: Optional[str] = None, logger: Optional
     :param str loader_type: type of YAML parser and loader. ``None`` or ``rt`` for round-trip (default),
         ``safe``, ``unsafe`` or ``base``.
     :param gluetool.log.ContextLogger logger: Logger used for logging.
+    :param callable unserialize: function to convert data into a specific structure, see e.g.
+        `create_cattrs_unserializer` function
     :rtype: object
     :returns: structures representing data in the file.
     :raises gluetool.glue.GlueError: if it was not possible to successfully load content of the file.
@@ -1052,6 +1086,10 @@ def load_yaml(filepath: str, loader_type: Optional[str] = None, logger: Optional
 
         log_dict(logger.debug, "loaded YAML data from '{}'".format(filepath), data)
 
+        if unserialize:
+            structure = unserialize(data)
+            logger.debug('converted loaded YAML data into a structure: {}'.format(str(structure)))
+            return structure
         return data
 
     except ruamel.yaml.error.YAMLError as e:

@@ -69,9 +69,10 @@ mypy-extensions = "*"
 zipp = "*"
 packaging = "*"
 MarkupSafe = "^2.0.0"
+attrs = "^22.2.0"
+cattrs = "^22.2.0"
 
 [tool.poetry.dev-dependencies]
-attrs = "*"
 # flake8 5 introduced a bug https://github.com/tholo/pytest-flake8/issues/87
 flake8 = "<5.0.0"
 lazy-object_proxy = "*"

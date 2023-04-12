@@ -1,11 +1,14 @@
 import re
 
 import pytest
+import attrs
 
 import gluetool
 from gluetool import GlueError
 from gluetool.log import format_dict
-from gluetool.utils import load_yaml
+from gluetool.utils import load_yaml, create_cattrs_unserializer
+
+from typing import List
 
 from . import create_yaml
 
@@ -74,3 +77,30 @@ FOO: bar
 
     mapping = gluetool.utils.PatternMap(str(f), logger=logger, allow_variables=True)
     assert mapping.match('dummy') == 'bar'
+
+
+def test_cattrs_unserializer(tmpdir):
+    @attrs.define
+    class Bar:
+        nested_a: str
+        nested_b: List[int]
+
+    @attrs.define
+    class Foo:
+        aaa: int
+        bbb: Bar
+
+    f = tmpdir.join('test.yml')
+    f.write("""---
+aaa: 123
+bbb:
+  nested_a: hello
+  nested_b:
+    - 1
+    - 2
+    - 3
+""")
+    structure = load_yaml(str(f), unserialize=create_cattrs_unserializer(Foo))
+    assert structure.aaa == 123
+    assert structure.bbb.nested_a == 'hello'
+    assert structure.bbb.nested_b == [1, 2, 3]
