@@ -140,14 +140,14 @@ class Gluetool(object):
         self.Glue.info('command-line:\n{}'.format(format_command_line(cmdline)))
 
     @cached_property
-    def _exit_logger(self) -> Union[logging.Logger, gluetool.log.ContextAdapter]:
+    def _exit_logger(self) -> gluetool.log.ContextAdapter:
 
         """
         Return logger for use when finishing the ``gluetool`` pipeline.
         """
 
         # We want to use the current logger, if there's any set up.
-        logger: Union[logging.Logger, gluetool.log.ContextAdapter] = gluetool.log.Logging.get_logger()
+        logger = gluetool.log.Logging.get_logger()
 
         if logger:
             return logger
@@ -157,7 +157,7 @@ class Gluetool(object):
         # to be the best option here.
 
         logging.basicConfig(level=logging.DEBUG)
-        logger = logging.getLogger()
+        logger = gluetool.log.ContextAdapter(logging.getLogger())
 
         logger.warning('Cannot use custom logger, falling back to a default one')
 

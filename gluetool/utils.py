@@ -40,8 +40,8 @@ from .log import Logging, ContextAdapter, PackageAdapter, LoggerMixin, BlobLogge
 
 # Type annotations
 # pylint: disable=unused-import, wrong-import-order
-from typing import IO, cast  # noqa
-from typing import Any, Callable, Deque, Dict, List, Optional, Pattern, Tuple, TypeVar, Union, Type, overload  # noqa
+from typing import IO, cast, overload  # noqa
+from typing import Any, Callable, Deque, Dict, List, Optional, Pattern, Tuple, TypeVar, Union, Generic, Type  # noqa
 from .log import LoggingFunctionType  # noqa
 
 import logging  # noqa
@@ -731,7 +731,7 @@ def check_for_commands(cmds: List[str]) -> None:
             raise GlueError("Command '{}' not found on the system".format(ensure_str(cmd))) from exc
 
 
-class cached_property(object):
+class cached_property(Generic[T]):
     # pylint: disable=invalid-name,too-few-public-methods
     """
     ``property``-like decorator - at first access, it calls decorated
@@ -748,12 +748,12 @@ class cached_property(object):
     supported so far.
     """
 
-    def __init__(self, method: Callable[..., Any]) -> None:
+    def __init__(self, method: Callable[..., T]) -> None:
 
         self._method = method
         self.__doc__ = getattr(method, '__doc__')
 
-    def __get__(self, obj: Any, cls: Any) -> Any:
+    def __get__(self, obj: Any, cls: Any) -> T:
 
         # does not support class attribute access, only instance
         assert obj is not None
