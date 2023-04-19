@@ -43,6 +43,7 @@ from .log import Logging, ContextAdapter, PackageAdapter, LoggerMixin, BlobLogge
 from typing import IO, cast, overload  # noqa
 from typing import Any, Callable, Deque, Dict, List, Optional, Pattern, Tuple, TypeVar, Union, Generic, Type  # noqa
 from .log import LoggingFunctionType  # noqa
+from typing_extensions import Literal  # noqa
 
 import logging  # noqa
 
@@ -1486,7 +1487,22 @@ class PatternMap(LoggerMixin, object):
 
             self._compiled_map.append((compiled_pattern, compiled_chains))
 
-    def match(self, s: str, multiple: bool = False) -> Union[str, List[str]]:
+    # Using noqa F811 because flake8 doesn't like overloading methods
+    @overload  # noqa F811
+    def match(self, s: str, multiple: Literal[False] = False) -> str:  # noqa F811s
+        pass
+
+    @overload  # noqa F811s
+    def match(self, s: str, *, multiple: Literal[True]) -> List[str]:  # noqa F811s
+        pass
+
+    # This 3rd overload looks redundand (direct copy of the actual method definition). But without it, mypy would
+    # complain: 'No overload variant of "match" of "PatternMap" matches argument types "str", "bool"  [call-overload]'
+    @overload  # noqa F811s
+    def match(self, s: str, multiple: bool = False) -> Union[str, List[str]]:  # noqa F811s
+        pass
+
+    def match(self, s: str, multiple: bool = False) -> Union[str, List[str]]:  # noqa F811s
 
         """
         Try to match ``s`` by the map. If the match is found - the first one wins - then its
