@@ -1022,6 +1022,24 @@ def from_yaml(yaml_string: str, loader_type: Optional[str] = None) -> Any:
     return YAML(loader_type).load(yaml_string)
 
 
+def create_cattrs_converter(**kwargs: Any) -> cattrs.Converter:
+    """
+    Create a customized `cattrs.Converter` instance.
+
+    This converter, while structuring data, does not try to convert pieces of data into primitive data types (int, str,
+    etc.). By default, this converting is enabled, e.g. feeding a list to a field annotated as ``str`` would convert the
+    list to string. This can lead to surprises as it would even pass ``attrs`` validation (if enabled), since it is
+    performed after ``cattrs`` constructing.
+    """
+    def nop(value: Any, _: Any) -> Any:
+        return value
+
+    converter = cattrs.Converter(**kwargs)
+    for cls in [int, float, str, bool, bytes]:
+        converter.register_structure_hook(cls, nop)
+    return converter
+
+
 def create_cattrs_unserializer(cls: Type[T], converter: Optional[cattrs.Converter] = None) -> Callable[[Any], T]:
     """
     Create a function which unserializes data into attrs-class modelled structures using cattrs library.
@@ -1032,7 +1050,7 @@ def create_cattrs_unserializer(cls: Type[T], converter: Optional[cattrs.Converte
     :returns: function for unserializing data into class-based structure
     """
 
-    converter = converter or cattrs.global_converter
+    converter = converter or create_cattrs_converter()
 
     def unserializer(data: Any) -> T:
         assert converter

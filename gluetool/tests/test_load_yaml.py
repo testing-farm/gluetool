@@ -2,6 +2,7 @@ import re
 
 import pytest
 import attrs
+import cattrs
 
 import gluetool
 from gluetool import GlueError
@@ -11,6 +12,17 @@ from gluetool.utils import load_yaml, create_cattrs_unserializer
 from typing import List
 
 from . import create_yaml
+
+
+@attrs.define
+class Bar:
+    nested_a: str
+    nested_b: List[int]
+
+@attrs.define
+class Foo:
+    aaa: int
+    bbb: Bar
 
 
 def test_missing_file(tmpdir):
@@ -80,16 +92,6 @@ FOO: bar
 
 
 def test_cattrs_unserializer(tmpdir):
-    @attrs.define
-    class Bar:
-        nested_a: str
-        nested_b: List[int]
-
-    @attrs.define
-    class Foo:
-        aaa: int
-        bbb: Bar
-
     f = tmpdir.join('test.yml')
     f.write("""---
 aaa: 123
@@ -104,3 +106,32 @@ bbb:
     assert structure.aaa == 123
     assert structure.bbb.nested_a == 'hello'
     assert structure.bbb.nested_b == [1, 2, 3]
+
+
+def test_cattrs_unserializer_converters(tmpdir):
+    f = tmpdir.join('test.yml')
+    f.write("""---
+aaa: '123'
+bbb:
+  nested_a: 1
+  nested_b:
+    - 1.0
+    - '2'
+    - True
+""")
+    # Use our gluetool Converter
+    structure1 = load_yaml(str(f), unserialize=create_cattrs_unserializer(Foo))
+    # Use default cattrs Converter
+    structure2 = load_yaml(str(f), unserialize=create_cattrs_unserializer(Foo, converter=cattrs.global_converter))
+
+    # Gluetool Converter keeps the data types as they are in the source yaml file, possibly violating type annotations
+    assert structure1.aaa == '123'
+    assert structure1.bbb.nested_a == 1
+    assert structure1.bbb.nested_b == [1.0, '2', True]
+    assert isinstance(structure1.bbb.nested_b[0], float)
+
+    # Default cattrs converter forces conversion of primitive data types when structuring
+    assert structure2.aaa == 123
+    assert structure2.bbb.nested_a == '1'
+    assert structure2.bbb.nested_b == [1, 2, 1]
+    assert isinstance(structure2.bbb.nested_b[0], int)
