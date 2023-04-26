@@ -14,6 +14,7 @@ import traceback
 
 from six import ensure_str, iteritems, iterkeys
 
+import psutil
 import tabulate
 
 import gluetool
@@ -42,6 +43,8 @@ DEFAULT_GLUETOOL_CONFIG_PATHS = [
 ]
 
 DEFAULT_HANDLED_SIGNALS = (signal.SIGUSR2,)
+
+DEFAULT_SIGTERM_TIMEOUT = 60
 
 
 def handle_exc(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -294,6 +297,21 @@ Will try to submit it to Sentry but giving up on everything else.
         orig_sigint_handler = signal.getsignal(signal.SIGINT)
         sigmap = {getattr(signal, name): name for name in [name for name in dir(signal) if name.startswith('SIG')]}
 
+        def _terminate_or_kill(child: psutil.Process) -> None:
+            Glue.warn("Sending SIGTERM to child process '{}' (PID {})".format(child.name(), child.pid))
+            child.terminate()
+
+            try:
+                child.wait(timeout=DEFAULT_SIGTERM_TIMEOUT)
+
+            except psutil.TimeoutExpired:
+                Glue.warn("Sending SIGKILL to child process '{}' (PID {})".format(child.name(), child.pid))
+                child.kill()
+
+        def _terminate_children() -> None:
+            for child in psutil.Process().children():
+                _terminate_or_kill(child)
+
         def _signal_handler(signum: int,
                             frame: Optional[FrameType],
                             handler: Optional[Callable[[int, FrameType], None]] = None,
@@ -306,11 +324,12 @@ Will try to submit it to Sentry but giving up on everything else.
             # Provide a flag for modules to check if they should try to finish as early as possible
             Glue.pipeline_cancelled = True
 
+            _terminate_children()
+
             if handler is not None and frame is not None:
                 return handler(signum, frame)
 
         def _sigusr1_handler(signum: int, frame: FrameType) -> None:
-
             # pylint: disable=unused-argument
 
             raise GlueError('Pipeline timeout expired.')
@@ -323,6 +342,9 @@ Will try to submit it to Sentry but giving up on everything else.
 
         # pylint: disable=invalid-name
         Glue = self.Glue = gluetool.glue.Glue(tool=self, sentry=self.sentry)
+
+        Glue.warn('create a new process group for the child processes')
+        os.setpgrp()
 
         # Glue is initialized, we can install our logging handlers
         signal.signal(signal.SIGINT, sigint_handler)

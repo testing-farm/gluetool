@@ -4,6 +4,7 @@
 import logging
 import os
 import signal
+import subprocess
 
 import pkg_resources
 import pytest
@@ -77,14 +78,25 @@ def test_signal(monkeypatch, log, tested_signal, exception, excmsg, warnmsg):
 
     signal_handler = signal.getsignal(tested_signal)
 
+    # run a background process which ignores SIGTERM to test the SIGUSR1 handling
+    gluetool.tool.DEFAULT_SIGTERM_TIMEOUT = 0
+
+    process = subprocess.Popen(
+        ['sleep', '30'],
+        preexec_fn=lambda: signal.signal(signal.SIGTERM, signal.SIG_IGN),
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
+
     with pytest.raises(exception, match=excmsg):
         signal_handler(tested_signal, MagicMock)
 
     assert tool.Glue.pipeline_cancelled is True
 
-    assert log.records[-1].message == warnmsg
-    assert log.records[-2].message == 'Exiting with status 0'
-    assert log.records[-3].message == 'gluetool some-version'
+    assert log.records[-1].message == "Sending SIGKILL to child process 'sleep' (PID {})".format(process.pid)
+    assert log.records[-2].message == "Sending SIGTERM to child process 'sleep' (PID {})".format(process.pid)
+    assert log.records[-3].message == warnmsg
+    assert log.records[-4].message == 'Exiting with status 0'
+    assert log.records[-5].message == 'gluetool some-version'
 
     # restore original signal handler, so we start correctly
     # for the next test
