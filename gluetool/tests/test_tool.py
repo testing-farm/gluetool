@@ -40,7 +40,9 @@ def test_init_environ(monkeypatch):
     monkeypatch.setattr(gluetool.glue, 'Glue', NonLoadingGlue)
 
     tool = gluetool.tool.Gluetool()
-    tool.gluetool_config_paths == ['path1', 'path2', 'path3']
+    assert tool.gluetool_config_paths == [
+        os.path.join(os.getcwd(), path) for path in ('path1', 'path2', 'path3')
+    ]
 
 
 @pytest.mark.parametrize(
