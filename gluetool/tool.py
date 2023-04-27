@@ -343,9 +343,6 @@ Will try to submit it to Sentry but giving up on everything else.
         # pylint: disable=invalid-name
         Glue = self.Glue = gluetool.glue.Glue(tool=self, sentry=self.sentry)
 
-        Glue.warn('create a new process group for the child processes')
-        os.setpgrp()
-
         # Glue is initialized, we can install our logging handlers
         signal.signal(signal.SIGINT, sigint_handler)
         signal.signal(signal.SIGTERM, sigterm_handler)
