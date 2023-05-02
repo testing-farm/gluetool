@@ -15,7 +15,7 @@ authors = [
 license = "BSD"
 readme = "README.rst"
 homepage = "https://gluetool.readthedocs.org/"
-repository = "https://github.com/gluetool/gluetool"
+repository = "https://gitlab.com/testing-farm/gluetool"
 classifiers = [
   'Development Status :: 5 - Production/Stable',
   'Environment :: Console',
