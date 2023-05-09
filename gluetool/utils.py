@@ -819,7 +819,7 @@ def fetch_url(url: str,
     :param tuple success_codes: tuple of HTTP response codes representing successfull request.
     :param int timeout: timeout in seconds for requests.get() method.
     :returns: tuple ``(response, content)`` where ``response`` is what
-      :py:func:`requests.get` returns, and ``content`` is the payload
+      :py:func:`requests.get` returns, and ``text`` is the payload
       of the response.
     """
 
@@ -837,7 +837,7 @@ def fetch_url(url: str,
     if response.status_code not in success_codes:
         raise GlueError("Unsuccessfull response from '{}'".format(url))
 
-    return response, response.content
+    return response, response.text
 
 
 @contextlib.contextmanager
@@ -895,7 +895,7 @@ def requests(logger: Optional[ContextAdapter] = None) -> Any:
             assert logger is not None
             log_blob(logger.debug,
                      'response content',
-                     ret.content)
+                     ret.text)
 
             return ret
 
