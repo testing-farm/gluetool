@@ -1,9 +1,7 @@
 stages:
   - test
 
-# Use our custom image. See https://gitlab.com/testing-farm/images/-/tree/master/python-ci-image
-# Because we still need py27 support, use the f32 based image
-image: "quay.io/testing-farm/python-ci-image:f32"
+image: "quay.io/testing-farm/python-ci-image:2023-05-23-73a71064"
 
 #
 # Poetry and MyPy colors
