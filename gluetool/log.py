@@ -269,7 +269,7 @@ def format_blob(blob: AnyStr) -> str:
     Format a blob of text for printing. Wraps the text with boundaries to mark its borders.
     """
 
-    text_blob = ensure_str(blob)
+    text_blob = ensure_str(blob, errors='replace')
 
     return '{}\n{}\n{}'.format(BLOB_HEADER, text_blob, BLOB_FOOTER)
 
