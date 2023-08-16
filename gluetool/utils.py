@@ -18,6 +18,7 @@ import sys
 import threading
 import time
 import warnings
+import logging  # noqa
 
 from subprocess import DEVNULL
 
@@ -41,11 +42,12 @@ from .log import Logging, ContextAdapter, PackageAdapter, LoggerMixin, BlobLogge
 # Type annotations
 # pylint: disable=unused-import, wrong-import-order
 from typing import IO, cast, overload  # noqa
-from typing import Any, Callable, Deque, Dict, List, Optional, Pattern, Tuple, TypeVar, Union, Generic, Type  # noqa
+from typing import (Any, Callable, Deque, Dict, List, Optional, Pattern, Tuple, TypeVar, Union, Generic, Type,
+                    TYPE_CHECKING)  # noqa
 from .log import LoggingFunctionType  # noqa
-from typing_extensions import Literal  # noqa
 
-import logging  # noqa
+if TYPE_CHECKING:
+    from typing_extensions import Literal  # noqa
 
 
 # Type variable used in generic types
@@ -1507,11 +1509,11 @@ class PatternMap(LoggerMixin, object):
 
     # Using noqa F811 because flake8 doesn't like overloading methods
     @overload  # noqa F811
-    def match(self, s: str, multiple: Literal[False] = False) -> str:  # noqa F811s
+    def match(self, s: str, multiple: 'Literal[False]' = False) -> str:  # noqa F811s
         pass
 
     @overload  # noqa F811s
-    def match(self, s: str, *, multiple: Literal[True]) -> List[str]:  # noqa F811s
+    def match(self, s: str, *, multiple: 'Literal[True]') -> List[str]:  # noqa F811s
         pass
 
     # This 3rd overload looks redundand (direct copy of the actual method definition). But without it, mypy would
