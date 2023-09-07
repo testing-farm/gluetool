@@ -30,7 +30,16 @@ The actual names of these variables can be changed when creating an instance of
 
 import os
 
-import raven
+import sentry_sdk
+import sentry_sdk.integrations.argv
+import sentry_sdk.integrations.atexit
+import sentry_sdk.integrations.dedupe
+import sentry_sdk.integrations.excepthook
+import sentry_sdk.integrations.logging
+import sentry_sdk.integrations.modules
+import sentry_sdk.integrations.stdlib
+import sentry_sdk.integrations.threading
+
 from six import iteritems
 
 import gluetool
@@ -91,7 +100,32 @@ class Sentry(object):
         if not dsn:
             return
 
-        self._client = raven.Client(dsn, install_logging_hook=True)
+        # Controls how many variables and other items are captured in event and stack frames. The default
+        # value of 10 is pretty small, 1000 should be more than enough for anything we ever encounter.
+        sentry_sdk.serializer.MAX_DATABAG_BREADTH = 1000
+
+        self._client = sentry_sdk.init(
+            dsn=dsn,
+            # log all issues
+            sample_rate=1.0,
+            traces_sample_rate=1.0,
+            # We need to override one parameter of on of the default integrations,
+            # so we're doomed to list all of them.
+            integrations=[
+                # Disable sending any log messages as standalone events
+                sentry_sdk.integrations.logging.LoggingIntegration(event_level=None),
+                # The rest is just default list of integrations.
+                # https://docs.sentry.io/platforms/python/configuration/integrations/default-integrations/
+                sentry_sdk.integrations.stdlib.StdlibIntegration(),
+                sentry_sdk.integrations.excepthook.ExcepthookIntegration(),
+                sentry_sdk.integrations.dedupe.DedupeIntegration(),
+                sentry_sdk.integrations.atexit.AtexitIntegration(),
+                sentry_sdk.integrations.modules.ModulesIntegration(),
+                sentry_sdk.integrations.argv.ArgvIntegration(),
+                sentry_sdk.integrations.threading.ThreadingIntegration()
+            ]
+
+        )
 
         # Enrich Sentry context with information that are important for us
         context = {}
@@ -100,19 +134,12 @@ class Sentry(object):
         for name, value in iteritems(os.environ):
             context['env.{}'.format(name)] = value
 
-        self._client.extra_context(context)
+        sentry_sdk.set_context('context', context)
 
     @gluetool.utils.cached_property
     def enabled(self) -> bool:
 
         return self._client is not None
-
-    def enable_logging_breadcrumbs(self, logger: Union[logging.Logger, gluetool.log.ContextAdapter]) -> None:
-
-        if not self.enabled:
-            return
-
-        raven.breadcrumbs.register_special_log_handler(logger, lambda *args: False)
 
     def event_url(self, event_id: str, logger: Optional[gluetool.log.ContextAdapter] = None) -> Optional[str]:
 
@@ -154,7 +181,7 @@ class Sentry(object):
                  event_type: str,
                  logger: Optional[gluetool.log.ContextAdapter] = None,
                  failure: Optional[gluetool.glue.Failure] = None,
-                 **kwargs: Any) -> str:
+                 **kwargs: Any) -> Optional[str]:
 
         """
         Prepare common arguments, and then submit the data to the Sentry server.
@@ -189,12 +216,22 @@ class Sentry(object):
             if hasattr(failure.exception, 'sentry_tags'):
                 tags = failure.exception.sentry_tags(tags)  # type: ignore  # has no attribute
 
-        assert self._client is not None
-        event_id: str = self._client.capture(event_type, tags=tags, fingerprint=fingerprint, **kwargs)
+        with sentry_sdk.push_scope() as scope:
+            for tag_key, tag_value in tags.items():
+                if tag_value:
+                    scope.set_tag(tag_key, tag_value)
+
+            if event_type == 'message':
+                event_id = sentry_sdk.capture_message(fingerprint=fingerprint, **kwargs)
+            elif event_type == 'exception' and failure:
+                event_id = sentry_sdk.capture_exception(error=failure.exc_info, fingerprint=fingerprint)
+            else:
+                raise gluetool.glue.GlueError('The {} event_type is unknown'.format(event_type))
 
         if failure is not None:
             failure.sentry_event_id = event_id
-            failure.sentry_event_url = self.event_url(event_id, logger=logger)
+            if event_id and self.event_url(event_id, logger=logger):
+                failure.sentry_event_url = self.event_url(event_id, logger=logger)
 
         self.log_issue(failure, logger=logger)
 
@@ -227,7 +264,7 @@ class Sentry(object):
 
             return None
 
-        return self._capture('raven.events.Exception', logger=logger, failure=failure, **kwargs)
+        return self._capture('exception', logger=logger, failure=failure, **kwargs)
 
     def submit_message(self,
                        msg: str,
@@ -249,4 +286,4 @@ class Sentry(object):
         if not self.enabled:
             return None
 
-        return self._capture('raven.events.Message', logger=logger, message=msg, **kwargs)
+        return self._capture('message', logger=logger, message=msg, **kwargs)

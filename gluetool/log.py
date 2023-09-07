@@ -1115,14 +1115,6 @@ class Logging(object):
             logger.info = logger.debug  # type: ignore
 
     @staticmethod
-    def enable_logger_sentry(logger: Union[logging.Logger, ContextAdapter]) -> None:
-
-        if not Logging.sentry:
-            return
-
-        Logging.sentry.enable_logging_breadcrumbs(logger)
-
-    @staticmethod
     def enable_debug_file(logger: Union[logging.Logger, ContextAdapter]) -> None:
 
         if not Logging.debug_file_handler:
@@ -1290,11 +1282,6 @@ class Logging(object):
             'yes' if sentry else 'no',
             show_traceback
         ))
-
-        # Enable Sentry
-        Logging.enable_logger_sentry(logger)
-
-        list(map(Logging.enable_logger_sentry, Logging.OUR_LOGGERS))
 
         # Enable debug and verbose files
         Logging.enable_debug_file(logger)
