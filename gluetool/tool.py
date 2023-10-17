@@ -309,7 +309,12 @@ Will try to submit it to Sentry but giving up on everything else.
                 child.kill()
 
         def _terminate_children() -> None:
+            # Terminate child processes. For children marked by `--terminate-process-tree` terminate whole process tree.
+            terminate_process_tree = gluetool.utils.normalize_multistring_option(Glue.option('terminate-process-tree'))
             for child in psutil.Process().children():
+                if child.name() in terminate_process_tree:
+                    for process in sorted(child.children(recursive=True), key=lambda x: x.pid, reverse=True):
+                        _terminate_or_kill(process)
                 _terminate_or_kill(child)
 
         def _signal_handler(signum: int,

@@ -46,20 +46,40 @@ def test_init_environ(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    'tested_signal,exception,excmsg,warnmsg',
+    'tested_signal,exception,terminate_process_tree,excmsg,warnmsg',
     [
-        (signal.SIGINT, KeyboardInterrupt, '', 'Interrupted by SIGINT (Ctrl+C?)'),
-        (signal.SIGTERM, KeyboardInterrupt, '', 'Interrupted by SIGTERM'),
+        (
+            signal.SIGINT,
+            KeyboardInterrupt,
+            ['sh'],
+            '',
+            'Interrupted by SIGINT (Ctrl+C?)'
+        ),
+        (
+            signal.SIGINT,
+            KeyboardInterrupt,
+            [],
+            '',
+            'Interrupted by SIGINT (Ctrl+C?)'
+        ),
+        (
+            signal.SIGTERM,
+            KeyboardInterrupt,
+            ['sh'],
+            '',
+            'Interrupted by SIGTERM'
+        ),
         (
             signal.SIGUSR1,
             gluetool.GlueError,
+            ['sh'],
             'Pipeline timeout expired',
             'Signal SIGUSR1 received',
         ),
     ],
-    ids=['SIGINT', 'SIGTERM', 'SIGUSR1']
+    ids=['SIGINT', 'SIGINT-no-process-tree', 'SIGTERM', 'SIGUSR1']
 )
-def test_signal(monkeypatch, log, tested_signal, exception, excmsg, warnmsg):
+def test_signal(monkeypatch, log, tested_signal, exception, terminate_process_tree, excmsg, warnmsg):
     tool = gluetool.tool.Gluetool()
 
     os.environ['GLUETOOL_TRACING_DISABLE'] = '1'
@@ -69,6 +89,8 @@ def test_signal(monkeypatch, log, tested_signal, exception, excmsg, warnmsg):
             return 'some-version'
         if option == 'pipeline':
             return []
+        if option == 'terminate-process-tree':
+            return terminate_process_tree
 
     monkeypatch.setattr(gluetool.Glue, 'option', mocked_option)
     monkeypatch.setattr(gluetool.Glue, '_parse_args', MagicMock())
@@ -84,22 +106,51 @@ def test_signal(monkeypatch, log, tested_signal, exception, excmsg, warnmsg):
     gluetool.tool.DEFAULT_SIGTERM_TIMEOUT = 0
 
     process = subprocess.Popen(
-        ['sleep', '30'],
+        ['sleep 30 & sleep 40'],
         preexec_fn=lambda: signal.signal(signal.SIGTERM, signal.SIG_IGN),
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        shell=True
     )
 
     with pytest.raises(exception, match=excmsg):
         signal_handler(tested_signal, MagicMock)
 
-    assert tool.Glue.pipeline_cancelled is True
-
-    assert log.records[-1].message == "Sending SIGKILL to child process 'sleep' (PID {})".format(process.pid)
-    assert log.records[-2].message == "Sending SIGTERM to child process 'sleep' (PID {})".format(process.pid)
-    assert log.records[-3].message == warnmsg
-    assert log.records[-4].message == 'Exiting with status 0'
-    assert log.records[-5].message == 'gluetool some-version'
-
     # restore original signal handler, so we start correctly
     # for the next test
     signal.signal(tested_signal, orig_signal_handler)
+
+    # Wait for the process to terminate
+    process.wait()
+
+    # The pipeline_cancelled flad should be set
+    assert tool.Glue.pipeline_cancelled is True
+
+    # Note that:
+    # * we cannot match concrete order of records
+    # * shell process can die before we send SIGKILL to it
+    # * we expect that at least one sleep command receives both signals
+    # * log.match can match whole strings only, and we have no idea what the PID of sleep processes will be
+    assert log.match(levelno=logging.WARNING, message="Sending SIGTERM to child process 'sh' (PID {})".format(process.pid))
+
+    sleep_sigterm = any(
+            True
+            for record in log.records
+            if record.message.startswith("Sending SIGTERM to child process 'sleep'") and record.levelno == logging.WARNING
+        )
+    sleep_sigkill = any(
+            True
+            for record in log.records
+            if record.message.startswith("Sending SIGKILL to child process 'sleep'") and record.levelno == logging.WARNING
+        )
+
+    # sleep should be terminated only if terminate_process_tree set, because it is a child process of ssh
+    if terminate_process_tree:
+        assert sleep_sigterm
+        assert sleep_sigkill
+    else:
+        assert not sleep_sigterm
+        assert not sleep_sigkill
+
+    assert log.match(levelno=logging.WARNING, message=warnmsg)
+    assert log.match(levelno=logging.DEBUG, message='Exiting with status 0')
+    assert log.match(levelno=logging.INFO, message='gluetool some-version')

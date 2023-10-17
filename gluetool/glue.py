@@ -1735,6 +1735,15 @@ class Glue(Configurable):
                 'help': 'List of exception names, which are not reported to Sentry (Default: none)',
                 'action': 'append',
                 'default': []
+            },
+            'terminate-process-tree': {
+                'help': """
+                        List of child process names which will have whole process tree terminated.
+                        By default only the child process is terminated and  it is left to them to terminate
+                        their children. (Default: none)
+                        """,
+                'action': 'append',
+                'default': []
             }
         }),
         ('Output control', {
