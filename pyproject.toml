@@ -109,5 +109,5 @@ gluetool-html-log = "gluetool.html_log:main"
 ".yaml_pipeline" = "gluetool_modules.yaml_pipeline:YAMLPipeline"
 
 [build-system]
-requires = ["poetry>=1.1.3"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
