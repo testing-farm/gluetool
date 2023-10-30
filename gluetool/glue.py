@@ -887,7 +887,7 @@ class Configurable(LoggerMixin, object):
 
     unique_name: Optional[str] = None
     """
-    Unque name of this (module) instance.
+    Unique name of this (module) instance.
 
     Used by modules, has no meaning elsewhere, but since dry-run checks are done on this level,
     it must be declared here to make pylint happy :/
@@ -1075,9 +1075,22 @@ class Configurable(LoggerMixin, object):
             if not os.access(path, os.R_OK):
                 self.debug("path '{}' not readable, skipping".format(path))  # pylint: disable=not-callable
                 continue
+
             with io.open(path, encoding='utf-8', mode="r") as file_handle:
                 config_data = file_handle.read()
-            config_data = config_data.replace("${config_root}", os.path.dirname(os.path.dirname(path)))
+
+            config_root = os.path.dirname(os.path.dirname(path))
+
+            # store module config root for Module instances only, used to expose `CONFIG_ROOT` of a module
+            # in the evaluation context
+            if isinstance(self, Module) and self.unique_name:
+                if self.unique_name in self.glue.module_config_roots:
+                    self.warn("module '{}' config root reset to '{}'".format(self.unique_name, config_root))
+                else:
+                    self.debug("module '{}' config root set to '{}'".format(self.unique_name, config_root))
+                self.glue.module_config_roots[self.unique_name] = config_root
+
+            config_data = config_data.replace("${config_root}", config_root)
             parser.read_string(config_data)
             parsed_paths.append(path)
 
@@ -1687,6 +1700,9 @@ class Glue(Configurable):
 
     name = 'gluetool core'
 
+    # Gluetool configuration directory root
+    module_config_roots: Dict[str, str] = {}
+
     options = [
         ('Global options', {
             ('l', 'list-modules'): {
@@ -2053,8 +2069,15 @@ class Glue(Configurable):
 
         self.debug('gather pipeline eval context')
 
+        module = self._eval_context_module_caller()
+
+        config_root: Optional[str] = None
+        if module and module.unique_name and module.unique_name in self.module_config_roots:
+            config_root = self.module_config_roots[module.unique_name]
+
         context = {
-            'MODULE': self._eval_context_module_caller()
+            'MODULE': module,
+            'CONFIG_ROOT': config_root
         }
 
         # 1st "module" is always this instance of ``Glue``.

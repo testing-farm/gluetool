@@ -1,5 +1,6 @@
 # pylint: disable=blacklisted-name
 
+import logging
 import pytest
 from os.path import abspath, dirname
 
@@ -27,6 +28,7 @@ class DummyModule(gluetool.Module):
 def fixture_module():
     return create_module(DummyModule)[1]
 
+
 def test_parse(module):
     """
     This test will check that ${config_root} is correctly replaced.
@@ -47,8 +49,13 @@ def test_parse(module):
 
     foo_data = foo_data.replace("${config_root}", dirname(dirname(path)))
 
-    assert(module.option('foo') == foo_data)
-    assert(module.option('bar') == None) # bar is not in the config files
+    assert module.option('foo') == foo_data
+    # bar is not in the config files
+    assert module.option('bar') is None
+    assert module.glue.module_config_roots == {
+        'dummy-module': dirname(dirname(path))
+    }
+
 
 def test_not_unicode(module):
     """
@@ -60,18 +67,25 @@ def test_not_unicode(module):
 
     module._parse_config([path])
 
-    assert(isinstance(module.option('foo'), str))
-    assert(isinstance(module.option('bar'), str))
+    assert isinstance(module.option('foo'), str)
+    assert isinstance(module.option('bar'), str)
+    assert module.glue.module_config_roots == {
+        'dummy-module': dirname(dirname(path))
+    }
 
-def test_overwrite(module):
+
+def test_overwrite(module, log):
     """
     Multiple configuration files may be specified. This test is to check that
     the latter files overwrite values of the former files.
     """
 
+    config_path_first = abspath(testing_asset('parse_config', 'configroot', 'config', 'data_config_root_a'))
+    config_path_second = abspath(testing_asset('parse_config', 'configroot', 'config', 'data_config_root_b'))
+
     paths = [
-        abspath(testing_asset('parse_config', 'configroot', 'config', 'data_config_root_a')),
-        abspath(testing_asset('parse_config', 'configroot', 'config', 'data_config_root_b'))
+        config_path_first,
+        config_path_second
     ]
 
     module._parse_config(paths)
@@ -84,10 +98,22 @@ def test_overwrite(module):
 
     foo_data = foo_data.replace("${config_root}", dirname(dirname(paths[1])))
 
-    assert(module.option('foo') == foo_data)
-    assert(module.option('bar') == None) # bar is not in the config files
+    assert module.option('foo') == foo_data
+    # bar is not in the config files
+    assert module.option('bar') is None
+    assert module.glue.module_config_roots == {
+        'dummy-module': dirname(dirname(config_path_second))
+    }
+    assert log.match(
+        levelno=logging.WARNING,
+        message="module '{}' config root reset to '{}'".format(
+            module.unique_name,
+            dirname(dirname(config_path_second))
+        )
+    )
 
-def test_separate_dir(module):
+
+def test_separate_dir(module, log):
     """
     data_config_root_a has a key 'bar' with value containing '${config_root}'
     data_config_root_b does not have 'bar' item. So most certainly, the
@@ -113,5 +139,21 @@ def test_separate_dir(module):
     foo_data = foo_data.replace("${config_root}", dirname(dirname(paths[1])))
     bar_data = bar_data.replace("${config_root}", dirname(dirname(paths[0])))
 
-    assert(module.option('foo') == foo_data)
-    assert(module.option('bar') == bar_data) # bar is in the data_config_root_a
+    assert module.option('foo') == foo_data
+    # bar is in the data_config_root_a
+    assert module.option('bar') == bar_data
+
+    assert log.match(
+        levelno=logging.WARNING,
+        message="module '{}' config root reset to '{}'".format(
+            module.unique_name,
+            dirname(dirname(paths[0]))
+        )
+    )
+    assert log.match(
+        levelno=logging.WARNING,
+        message="module '{}' config root reset to '{}'".format(
+            module.unique_name,
+            dirname(dirname(paths[1]))
+        )
+    )
