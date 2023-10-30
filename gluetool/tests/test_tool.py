@@ -143,7 +143,7 @@ def test_signal(monkeypatch, log, tested_signal, exception, terminate_process_tr
             if record.message.startswith("Sending SIGKILL to child process 'sleep'") and record.levelno == logging.WARNING
         )
 
-    # sleep should be terminated only if terminate_process_tree set, because it is a child process of ssh
+    # sleep should be terminated only if terminate_process_tree set, because it is a child process of `sh`
     if terminate_process_tree:
         assert sleep_sigterm
         assert sleep_sigkill
