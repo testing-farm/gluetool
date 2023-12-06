@@ -40,14 +40,6 @@ type-check:
   extends: .tests
   script: tox -e type-check
 
-py37-static:
-  extends: .tests
-  script: tox -e py37-static-analysis
-
-py37-unit:
-  extends: .tests
-  script: tox -e py37-unit-tests
-
 py38-static:
   extends: .tests
   script: tox -e py38-static-analysis

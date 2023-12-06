@@ -47,7 +47,7 @@ from typing import (Any, Callable, Deque, Dict, List, Optional, Pattern, Tuple, 
 from .log import LoggingFunctionType  # noqa
 
 if TYPE_CHECKING:
-    from typing_extensions import Literal  # noqa
+    from typing import Literal  # noqa
 
 
 # Type variable used in generic types
