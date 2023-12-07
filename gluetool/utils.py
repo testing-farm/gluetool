@@ -33,6 +33,7 @@ import jinja2
 import requests as original_requests
 import ruamel.yaml
 import cattrs
+import cattrs.strategies
 
 from .glue import GlueError, SoftGlueError, GlueCommandError
 from .result import Result
@@ -992,38 +993,6 @@ def render_template(template: Union[str, jinja2.environment.Template],
         raise GlueError('Cannot render template: {}'.format(exc)) from exc
 
 
-# pylint: disable=invalid-name
-def YAML(loader_type: Optional[str] = None) -> ruamel.yaml.YAML:
-
-    """
-    Provides YAML read/write interface with common settings.
-
-    :param str loader_type: type of YAML parser and loader. ``None`` or ``rt`` for round-trip (default),
-        ``safe``, ``unsafe`` or ``base``.
-    :rtype: ruamel.yaml.YAML
-    """
-
-    yaml = ruamel.yaml.YAML(typ=loader_type)
-    yaml.indent(sequence=4, mapping=4, offset=2)
-
-    return yaml
-
-
-def from_yaml(yaml_string: str, loader_type: Optional[str] = None) -> Any:
-
-    """
-    Convert YAML in a string into Python data structures.
-
-    Uses internal YAML parser to produce result. Paired with :py:func:`load_yaml` and their
-    JSON siblings to provide unified access to JSON and YAML.
-
-    :param str loader_type: type of YAML parser and loader. ``None`` or ``rt`` for round-trip (default),
-        ``safe``, ``unsafe`` or ``base``.
-    """
-
-    return YAML(loader_type).load(yaml_string)
-
-
 def create_cattrs_converter(**kwargs: Any) -> cattrs.Converter:
     """
     Create a customized `cattrs.Converter` instance.
@@ -1037,6 +1006,7 @@ def create_cattrs_converter(**kwargs: Any) -> cattrs.Converter:
         return value
 
     converter = cattrs.Converter(**kwargs)
+    cattrs.strategies.use_class_methods(converter, '_structure', '_unstructure')
     for cls in [int, float, str, bool, bytes]:
         converter.register_structure_hook(cls, nop)
     return converter
@@ -1060,20 +1030,68 @@ def create_cattrs_unserializer(cls: Type[T], converter: Optional[cattrs.Converte
     return unserializer
 
 
+# pylint: disable=invalid-name
+def YAML(loader_type: Optional[str] = None) -> ruamel.yaml.YAML:
+
+    """
+    Provides YAML read/write interface with common settings.
+
+    :param str loader_type: type of YAML parser and loader. ``None`` or ``rt`` for round-trip (default),
+        ``safe``, ``unsafe`` or ``base``.
+    :rtype: ruamel.yaml.YAML
+    """
+
+    yaml = ruamel.yaml.YAML(typ=loader_type)
+    yaml.indent(sequence=4, mapping=4, offset=2)
+
+    return yaml
+
+
+@overload
+def from_yaml(yaml_string: str, loader_type: Optional[str] = None, unserializer: None = None) -> Any:
+    pass
+
+
+@overload
+def from_yaml(yaml_string: str, loader_type: Optional[str] = None, *, unserializer: Callable[[Any], T]) -> T:
+    pass
+
+
+def from_yaml(yaml_string: str, loader_type: Optional[str] = None,
+              unserializer: Optional[Callable[[Any], T]] = None) -> Any:
+
+    """
+    Convert YAML in a string into Python data structures.
+
+    Uses internal YAML parser to produce result. Paired with :py:func:`load_yaml` and their
+    JSON siblings to provide unified access to JSON and YAML.
+
+    :param str loader_type: type of YAML parser and loader. ``None`` or ``rt`` for round-trip (default),
+        ``safe``, ``unsafe`` or ``base``.
+    """
+
+    loaded_yaml = YAML(loader_type).load(yaml_string)
+
+    if unserializer:
+        return unserializer(loaded_yaml)
+
+    return loaded_yaml
+
+
 @overload
 def load_yaml(filepath: str, loader_type: Optional[str] = None, logger: Optional[ContextAdapter] = None,
-              unserialize: None = None) -> Any:
+              unserializer: None = None) -> Any:
     pass
 
 
 @overload
 def load_yaml(filepath: str, loader_type: Optional[str] = None, logger: Optional[ContextAdapter] = None,
-              *, unserialize: Callable[[Any], T]) -> T:
+              *, unserializer: Callable[[Any], T]) -> T:
     pass
 
 
 def load_yaml(filepath: str, loader_type: Optional[str] = None, logger: Optional[ContextAdapter] = None,
-              unserialize: Optional[Callable[[Any], T]] = None) -> Any:
+              unserializer: Optional[Callable[[Any], T]] = None) -> Any:
 
     """
     Load data stored in YAML file, and return their Python representation.
@@ -1107,8 +1125,8 @@ def load_yaml(filepath: str, loader_type: Optional[str] = None, logger: Optional
 
         log_dict(logger.debug, "loaded YAML data from '{}'".format(filepath), data)
 
-        if unserialize:
-            structure = unserialize(data)
+        if unserializer:
+            structure = unserializer(data)
             logger.debug('converted loaded YAML data into a structure: {}'.format(str(structure)))
             return structure
         return data

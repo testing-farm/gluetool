@@ -7,7 +7,7 @@ import cattrs
 import gluetool
 from gluetool import GlueError
 from gluetool.log import format_dict
-from gluetool.utils import load_yaml, create_cattrs_unserializer
+from gluetool.utils import load_yaml, from_yaml, create_cattrs_unserializer
 
 from typing import List
 
@@ -102,27 +102,33 @@ bbb:
     - 2
     - 3
 """)
-    structure = load_yaml(str(f), unserialize=create_cattrs_unserializer(Foo))
+    structure = load_yaml(str(f), unserializer=create_cattrs_unserializer(Foo))
     assert structure.aaa == 123
     assert structure.bbb.nested_a == 'hello'
     assert structure.bbb.nested_b == [1, 2, 3]
 
 
 def test_cattrs_unserializer_converters(tmpdir):
-    f = tmpdir.join('test.yml')
-    f.write("""---
+    yaml = """---
 aaa: '123'
 bbb:
   nested_a: 1
   nested_b:
     - 1.0
     - '2'
-    - True
-""")
+    - True"""
+    f = tmpdir.join('test.yml')
+    f.write(yaml)
     # Use our gluetool Converter
-    structure1 = load_yaml(str(f), unserialize=create_cattrs_unserializer(Foo))
+    structure1 = load_yaml(str(f), unserializer=create_cattrs_unserializer(Foo))
     # Use default cattrs Converter
-    structure2 = load_yaml(str(f), unserialize=create_cattrs_unserializer(Foo, converter=cattrs.global_converter))
+    structure2 = load_yaml(str(f), unserializer=create_cattrs_unserializer(Foo, converter=cattrs.global_converter))
+
+    assert structure1 == from_yaml(yaml, unserializer=create_cattrs_unserializer(Foo))
+    assert structure2 == from_yaml(
+        yaml,
+        unserializer=create_cattrs_unserializer(Foo, converter=cattrs.global_converter)
+    )
 
     # Gluetool Converter keeps the data types as they are in the source yaml file, possibly violating type annotations
     assert structure1.aaa == '123'
