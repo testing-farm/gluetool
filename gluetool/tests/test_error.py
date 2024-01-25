@@ -8,6 +8,7 @@ from mock import MagicMock
 from hypothesis import example, given, strategies as st
 
 import gluetool
+import gluetool.sentry
 from gluetool import GlueError
 
 
@@ -91,6 +92,19 @@ def test_sentry_tags(current, explicit):
         expected.update(explicit)
 
     assert GlueError('', sentry_tags=explicit).sentry_tags(current) == expected
+
+
+def test_sentry_event_url_template(monkeypatch):
+    monkeypatch.setenv('SENTRY_BASE_URL', 'https://foo.bar/')
+    monkeypatch.setenv('SENTRY_EVENT_URL_TEMPLATE', 'https://foo.bar/?event_id={{ EVENT_ID }}')
+
+    assert gluetool.sentry.Sentry().event_url('dummy-event-id') == 'https://foo.bar/?event_id=dummy-event-id'
+
+
+def test_sentry_event_url_base_url(monkeypatch):
+    monkeypatch.setenv('SENTRY_BASE_URL', 'https://foo.bar/')
+
+    assert gluetool.sentry.Sentry().event_url('dummy-event-id') == 'https://foo.bar/?query=dummy-event-id'
 
 
 @given(cmd=st.lists(st.text(string.printable)), exit_code=st.integers())

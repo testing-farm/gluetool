@@ -71,6 +71,7 @@ class Sentry(object):
     def __init__(self,
                  dsn_env_var: Optional[str] = 'SENTRY_DSN',
                  base_url_env_var: Optional[str] = 'SENTRY_BASE_URL',
+                 event_url_template_env_var: Optional[str] = 'SENTRY_EVENT_URL_TEMPLATE',
                  tags_map_env_var: Optional[str] = 'SENTRY_TAG_MAP') -> None:
 
         self._client = None
@@ -78,6 +79,9 @@ class Sentry(object):
 
         if base_url_env_var:
             self._base_url = os.environ.get(base_url_env_var, None)
+
+        if event_url_template_env_var:
+            self._event_url_template = os.environ.get(event_url_template_env_var, None)
 
         self._tag_map: Dict[str, str] = {}
 
@@ -153,10 +157,26 @@ class Sentry(object):
         :param gluetool.log.ContextAdapter logger: logger to use for logging.
         """
 
-        if not self._base_url:
-            return None
+        if self._event_url_template:
+            try:
+                event_url = gluetool.utils.render_template(
+                    self._event_url_template,
+                    logger=logger,
+                    EVENT_ID=event_id
+                )
 
-        return gluetool.utils.treat_url('{}/?query={}'.format(self._base_url, event_id), logger=logger)
+            except gluetool.GlueError as exc:
+                if logger:
+                    logger.warning(f"Could not render Sentry event URL template: {exc}")
+
+                return None
+
+            return gluetool.utils.treat_url(event_url, logger=logger)
+
+        if self._base_url:
+            return gluetool.utils.treat_url('{}/?query={}'.format(self._base_url, event_id), logger=logger)
+
+        return None
 
     @staticmethod
     def log_issue(failure: Optional[gluetool.glue.Failure],
