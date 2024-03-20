@@ -3,6 +3,7 @@
 
 import logging
 import os
+import re
 import signal
 import subprocess
 
@@ -135,12 +136,18 @@ def test_signal(monkeypatch, log, tested_signal, exception, terminate_process_tr
     sleep_sigterm = any(
             True
             for record in log.records
-            if record.message.startswith("Sending SIGTERM to child process 'sleep'") and record.levelno == logging.WARNING
+            if re.match(
+                r"Sending SIGTERM to (?:grand)?child process 'sleep'.*",
+                record.message
+            ) and record.levelno == logging.WARNING
         )
     sleep_sigkill = any(
             True
             for record in log.records
-            if record.message.startswith("Sending SIGKILL to child process 'sleep'") and record.levelno == logging.WARNING
+            if re.match(
+                r"Sending SIGKILL to (?:grand)?child process 'sleep'.*",
+                record.message
+            ) and record.levelno == logging.WARNING
         )
 
     # sleep should be terminated only if terminate_process_tree set, because it is a child process of `sh`

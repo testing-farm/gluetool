@@ -297,8 +297,8 @@ Will try to submit it to Sentry but giving up on everything else.
         orig_sigint_handler = signal.getsignal(signal.SIGINT)
         sigmap = {getattr(signal, name): name for name in [name for name in dir(signal) if name.startswith('SIG')]}
 
-        def _terminate_or_kill(child: psutil.Process) -> None:
-            Glue.warn("Sending SIGTERM to child process '{}' (PID {})".format(child.name(), child.pid))
+        def _terminate_or_kill(child: psutil.Process, description: str) -> None:
+            Glue.warn("Sending SIGTERM to {} process '{}' (PID {})".format(description, child.name(), child.pid))
             child.terminate()
 
             try:
@@ -309,13 +309,26 @@ Will try to submit it to Sentry but giving up on everything else.
                 child.kill()
 
         def _terminate_children() -> None:
+            process = psutil.Process()
+
             # Terminate child processes. For children marked by `--terminate-process-tree` terminate whole process tree.
             terminate_process_tree = gluetool.utils.normalize_multistring_option(Glue.option('terminate-process-tree'))
-            for child in psutil.Process().children():
+            for child in process.children():
                 if child.name() in terminate_process_tree:
                     for process in sorted(child.children(recursive=True), key=lambda x: x.pid, reverse=True):
-                        _terminate_or_kill(process)
-                _terminate_or_kill(child)
+                        _terminate_or_kill(process, "grandchild")
+                _terminate_or_kill(child, "child")
+
+            # Terminate leftover processes in the same proccess group. For children marked by `--terminate-process-tree`
+            # terminate whole process tree.
+            if Glue.option('terminate-process-group-leftovers'):
+                process_pgid = os.getpgid(process.pid)
+                leftovers = [
+                    proc for proc in psutil.process_iter(attrs=['pid'])
+                    if os.getpgid(proc.pid) == process_pgid and proc.pid != process.pid
+                ]
+                for process in leftovers:
+                    _terminate_or_kill(process, "process group leftover")
 
         def _signal_handler(signum: int,
                             frame: Optional[FrameType],

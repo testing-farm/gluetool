@@ -1744,7 +1744,16 @@ class Glue(Configurable):
                         """,
                 'action': 'append',
                 'default': []
-            }
+            },
+            'terminate-process-group-leftovers': {
+                'help': """
+                        Terminate any leftover processes in the process group. This is done after terminating
+                        the process tree. For example, Ansible detaches some processes from the pipeline process
+                        tree, which can cause the pipeline execution to hang until these processes have finished.
+                        """,
+                'action': 'store_true',
+                'default': False
+            },
         }),
         ('Output control', {
             ('c', 'colors'): {
