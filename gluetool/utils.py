@@ -37,7 +37,7 @@ import cattrs.strategies
 
 from .glue import GlueError, SoftGlueError, GlueCommandError
 from .result import Result
-from .log import Logging, ContextAdapter, PackageAdapter, LoggerMixin, BlobLogger, \
+from .log import Logging, ContextAdapter, PackageAdapter, LoggerMixin, BlobLogger, Topic, \
     log_blob, log_dict, print_wrapper
 
 # Type annotations
@@ -973,7 +973,7 @@ def render_template(template: Union[str, jinja2.environment.Template],
             assert logger is not None
 
             log_blob(logger.debug, 'rendering template', source)
-            log_dict(logger.verbose, 'context', kwargs)
+            log_dict(logger.verbose, 'context', kwargs, topic=Topic.EVAL_CONTEXT)
 
             return ensure_str(template.render(**kwargs).strip())
 

@@ -1,11 +1,16 @@
 import json
+import logging
 import re
 import string
 
 import pytest
+from gluetool.tests import CaplogWrapper
 from hypothesis import assume, given, strategies as st
+from gluetool.help import EVAL_CONTEXT_HELP_TEMPLATE
 
 import gluetool.log
+from gluetool.log import Topic
+from gluetool.result import E
 
 # strategy to generate strctured data
 _structured = st.recursive(st.none() | st.booleans() | st.floats(allow_nan=False) | st.text(string.printable),
@@ -34,3 +39,46 @@ def test_format_dict(data):
     expected = json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '), default=default)
 
     assert re.match(re.escape(expected), gluetool.log.format_dict(data), re.MULTILINE)
+
+
+def generate_topic_testcase(logfn, level, name=''):
+    return pytest.param(
+        logfn,
+        ('message',),
+        {'topic': Topic.EVAL_CONTEXT} if 'eval-context' in name else {},
+        [Topic.EVAL_CONTEXT] if 'eval-context-logged' in name else None,
+        level,
+        None if 'not-logged' in name else 'message',
+        id='{}-{}'.format(logfn, name) if name else logfn
+    )
+
+
+@pytest.mark.parametrize('function, args, kwargs, topics, level, expected', [
+    generate_topic_testcase('verbose', gluetool.log.VERBOSE),
+    generate_topic_testcase('verbose', gluetool.log.VERBOSE, 'eval-context-logged'),
+    generate_topic_testcase('verbose', gluetool.log.VERBOSE, 'eval-context-not-logged'),
+    generate_topic_testcase('debug', logging.DEBUG),
+    generate_topic_testcase('debug', logging.DEBUG, 'eval-context-logged'),
+    generate_topic_testcase('debug', logging.DEBUG, 'eval-context-not-logged'),
+    generate_topic_testcase('info', logging.INFO),
+    generate_topic_testcase('info', logging.INFO, 'eval-context-logged'),
+    generate_topic_testcase('info', logging.INFO, 'eval-context-not-logged'),
+    generate_topic_testcase('warning', logging.WARNING),
+    generate_topic_testcase('warning', logging.WARNING, 'eval-context-logged'),
+    generate_topic_testcase('warning', logging.WARNING, 'eval-context-not-logged'),
+    generate_topic_testcase('error', logging.ERROR),
+    generate_topic_testcase('error', logging.ERROR, 'eval-context-logged'),
+    generate_topic_testcase('error', logging.ERROR, 'eval-context-not-logged'),
+])
+def test_log_topics(log, function, args, kwargs, topics, level, expected):
+    logger = gluetool.log.Logging.setup_logger(topics=topics)
+
+    getattr(logger, function)(*args, **kwargs)
+
+    records = [record for record in log.records if record.levelno == level and record.message == expected]
+
+    if expected:
+        assert len(records) == 1
+        return
+
+    assert len(records) == 0

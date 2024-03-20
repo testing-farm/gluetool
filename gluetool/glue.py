@@ -26,7 +26,7 @@ import pkg_resources
 from .action import Action
 from .color import Colors, switch as switch_colors
 from .help import LineWrapRawTextHelpFormatter, option_help, docstring_to_help, trim_docstring, eval_context_help
-from .log import Logging, LoggerMixin, ContextAdapter, ModuleAdapter, log_dict, VERBOSE
+from .log import Logging, LoggerMixin, Topic, ContextAdapter, ModuleAdapter, log_dict, VERBOSE
 
 # Type annotations
 # pylint: disable=unused-import,wrong-import-order
@@ -1793,6 +1793,12 @@ class Glue(Configurable):
                 'help': 'Log messages with ``VERBOSE`` level sent to this file.',
                 'default': None
             },
+            'log-topic': {
+                'help': 'If specified, also emit logs for the given topics.',
+                'default': None,
+                'choices': [topic.value for topic in Topic],
+                'action': 'append'
+            },
             ('p', 'pid'): {
                 'help': 'Log PID of gluetool process',
                 'action': 'store_true'
@@ -2481,6 +2487,9 @@ class Glue(Configurable):
         json_output = normalize_bool_option(self.option('json-output'))
         json_output_pretty = normalize_bool_option(self.option('json-output-pretty'))
 
+        from .utils import normalize_multistring_option
+        topics = set(Topic(topic) for topic in normalize_multistring_option(self.option('log-topic')))
+
         if debug_file and not verbose_file:
             verbose_file = '{}.verbose'.format(debug_file)
 
@@ -2493,7 +2502,8 @@ class Glue(Configurable):
             json_output=json_output,
             json_output_pretty=json_output_pretty,
             sentry=self._sentry,
-            show_traceback=normalize_bool_option(self.option('show-traceback'))
+            show_traceback=normalize_bool_option(self.option('show-traceback')),
+            topics=topics
         )
 
         if level == logging.DEBUG and not verbose_file:

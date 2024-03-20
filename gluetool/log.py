@@ -35,6 +35,7 @@ Example usage:
 
 import atexit
 import contextlib
+import enum
 import hashlib
 import json
 import logging
@@ -51,7 +52,7 @@ from .color import Colors
 
 # Type annotations
 # pylint: disable=unused-import,wrong-import-order,line-too-long
-from typing import TYPE_CHECKING, Any, AnyStr, Callable, Dict, Iterable, List, MutableMapping, Optional, Tuple, Type, Union, cast  # noqa
+from typing import TYPE_CHECKING, Any, AnyStr, Callable, Dict, Iterable, List, MutableMapping, Optional, Set, Tuple, Type, Union, cast  # noqa
 from types import TracebackType  # noqa
 from mypy_extensions import Arg, DefaultArg, NamedArg, DefaultNamedArg, VarArg, KwArg  # noqa
 import bs4  # noqa
@@ -82,7 +83,8 @@ LoggingFunctionType = Callable[
         Arg(str),
         DefaultNamedArg(ExceptionInfoType, 'exc_info'),  # noqa: F821
         DefaultNamedArg(Dict[str, Any], 'extra'),  # noqa: F821
-        DefaultNamedArg(bool, 'sentry')  # noqa: F821
+        DefaultNamedArg(bool, 'sentry'),  # noqa: F821
+        DefaultNamedArg(Optional['Topic'], 'topic')  # noqa: F821
     ],
     None
 ]
@@ -120,6 +122,10 @@ At {{ stack[-1][0] }}:{{ stack[-1][1] }}, in {{ stack[-1][2] }}:
 {% endfor %}
 ---^---^---^---^---^---^----------^---^---^---^---^---^---
 """
+
+
+class Topic(enum.Enum):
+    EVAL_CONTEXT = 'eval-context'
 
 
 class BlobLogger(object):
@@ -312,7 +318,7 @@ def format_xml(element: bs4.BeautifulSoup) -> str:
     return prettyfied
 
 
-def log_dict(writer: LoggingFunctionType, intro: str, data: Any) -> None:
+def log_dict(writer: LoggingFunctionType, intro: str, data: Any, topic: Optional[Topic] = None) -> None:
 
     """
     Log structured data, e.g. JSON responses or a Python ``list``.
@@ -344,15 +350,16 @@ def log_dict(writer: LoggingFunctionType, intro: str, data: Any) -> None:
     :param callable writer: A function which is used to actually log the text. Usually a one of some logger methods.
     :param str intro: Label to show what is the meaning of the logged structure.
     :param str blob: The actual data to log.
+    :param Topic topic: Log topic to use.
     """
 
     writer('{}:\n{}'.format(intro, format_dict(data)), extra={
         'raw_intro': intro,
         'raw_struct': data
-    })
+    }, topic=topic)
 
 
-def log_blob(writer: LoggingFunctionType, intro: str, blob: AnyStr) -> None:
+def log_blob(writer: LoggingFunctionType, intro: str, blob: AnyStr, topic: Optional[Topic] = None) -> None:
 
     """
     Log "blob" of characters of unknown structure, e.g. output of a command or response
@@ -367,15 +374,18 @@ def log_blob(writer: LoggingFunctionType, intro: str, blob: AnyStr) -> None:
     :param callable writer: A function which is used to actually log the text. Usually a one of some logger methods.
     :param str intro: Label to show what is the meaning of the logged blob.
     :param str blob: The actual blob of text.
+    :param Topic topic: Log topic to use.
     """
 
     writer("{}:\n{}".format(intro, format_blob(blob)), extra={
         'raw_intro': intro,
         'raw_blob': blob
-    })
+    }, topic=topic)
 
 
-def log_table(writer: LoggingFunctionType, intro: str, table: Iterable[Iterable[str]], **kwargs: Any) -> None:
+def log_table(
+        writer: LoggingFunctionType, intro: str, table: Iterable[Iterable[str]],
+        topic: Optional[Topic] = None, **kwargs: Any) -> None:
 
     """
     Log a formatted table.
@@ -390,10 +400,10 @@ def log_table(writer: LoggingFunctionType, intro: str, table: Iterable[Iterable[
     writer('{}:\n{}'.format(intro, format_table(table, **kwargs)), extra={
         'raw_intro': intro,
         'raw_table': table
-    })
+    }, topic=topic)
 
 
-def log_xml(writer: LoggingFunctionType, intro: str, element: bs4.BeautifulSoup) -> None:
+def log_xml(writer: LoggingFunctionType, intro: str, element: bs4.BeautifulSoup, topic: Optional[Topic] = None) -> None:
 
     """
     Log an XML element, e.g. Beaker job description.
@@ -406,7 +416,7 @@ def log_xml(writer: LoggingFunctionType, intro: str, element: bs4.BeautifulSoup)
     writer("{}:\n{}".format(intro, format_xml(element)), extra={
         'raw_intro': intro,
         'raw_xml': element
-    })
+    }, topic=topic)
 
 
 # pylint: disable=invalid-name
@@ -585,6 +595,10 @@ class ContextAdapter(_LoggerAdapter):
         # Force aggregation store into the `extra` parameter - it may have been missing, see the initialization above.
         extra['contexts'] = contexts
 
+        # Add log topic
+        extra['topic'] = kwargs.get('topic')
+        del kwargs['topic']
+
         # Save updated `extra` value back to `kwargs`. It may have been `None`, but from now on it's a dictionary,
         # with an item dedicated to context aggregation.
         kwargs['extra'] = extra
@@ -597,14 +611,16 @@ class ContextAdapter(_LoggerAdapter):
             msg: str,
             exc_info: Optional[ExceptionInfoType] = None,
             extra: Optional[Dict[str, Any]] = None,
-            sentry: bool = False) -> None:
+            sentry: bool = False,
+            topic: Optional[Topic] = None) -> None:
 
         msg, kwargs = self.process(
             msg,
             # yes, process doesn't accept **kwargs...
             {
                 'exc_info': exc_info,
-                'extra': extra
+                'extra': extra,
+                'topic': topic
             }
         )
 
@@ -621,7 +637,8 @@ class ContextAdapter(_LoggerAdapter):
                 msg: str,
                 exc_info: Optional[ExceptionInfoType] = None,
                 extra: Optional[Dict[str, Any]] = None,
-                sentry: bool = False) -> None:
+                sentry: bool = False,
+                topic: Optional[Topic] = None) -> None:
 
         if not self.isEnabledFor(VERBOSE):
             return
@@ -662,8 +679,8 @@ class ContextAdapter(_LoggerAdapter):
 
         placeholder_message = '{} (See "verbose" log for the actual message)'.format(hint)
 
-        self.log(logging.DEBUG, placeholder_message, exc_info=exc_info, extra=extra, sentry=sentry)
-        self.log(VERBOSE, msg, exc_info=exc_info, extra=extra, sentry=sentry)
+        self.log(logging.DEBUG, placeholder_message, exc_info=exc_info, extra=extra, sentry=sentry, topic=topic)
+        self.log(VERBOSE, msg, exc_info=exc_info, extra=extra, sentry=sentry, topic=topic)
 
     # Disabling type checking of logging methods' signatures - they differ from supertype's signatures
     # but that is on purpose.
@@ -673,27 +690,30 @@ class ContextAdapter(_LoggerAdapter):
               msg: str,
               exc_info: Optional[ExceptionInfoType] = None,
               extra: Optional[Dict[str, Any]] = None,
-              sentry: bool = False) -> None:
+              sentry: bool = False,
+              topic: Optional[Topic] = None) -> None:
 
-        self.log(logging.DEBUG, msg, exc_info=exc_info, extra=extra, sentry=sentry)
+        self.log(logging.DEBUG, msg, exc_info=exc_info, extra=extra, sentry=sentry, topic=topic)
 
     # pylint: disable=arguments-differ
     def info(self,   # type: ignore
              msg: str,
              exc_info: Optional[ExceptionInfoType] = None,
              extra: Optional[Dict[str, Any]] = None,
-             sentry: bool = False) -> None:
+             sentry: bool = False,
+             topic: Optional[Topic] = None) -> None:
 
-        self.log(logging.INFO, msg, exc_info=exc_info, extra=extra, sentry=sentry)
+        self.log(logging.INFO, msg, exc_info=exc_info, extra=extra, sentry=sentry, topic=topic)
 
     # pylint: disable=arguments-differ
     def warning(self,   # type: ignore
                 msg: str,
                 exc_info: Optional[ExceptionInfoType] = None,
                 extra: Optional[Dict[str, Any]] = None,
-                sentry: bool = False) -> None:
+                sentry: bool = False,
+                topic: Optional[Topic] = None) -> None:
 
-        self.log(logging.WARNING, msg, exc_info=exc_info, extra=extra, sentry=sentry)
+        self.log(logging.WARNING, msg, exc_info=exc_info, extra=extra, sentry=sentry, topic=topic)
 
     warn = warning  # type: ignore
 
@@ -702,18 +722,20 @@ class ContextAdapter(_LoggerAdapter):
               msg: str,
               exc_info: Optional[ExceptionInfoType] = None,
               extra: Optional[Dict[str, Any]] = None,
-              sentry: bool = False) -> None:
+              sentry: bool = False,
+              topic: Optional[Topic] = None) -> None:
 
-        self.log(logging.ERROR, msg, exc_info=exc_info, extra=extra, sentry=sentry)
+        self.log(logging.ERROR, msg, exc_info=exc_info, extra=extra, sentry=sentry, topic=topic)
 
     # pylint: disable=arguments-differ
     def exception(self,   # type: ignore
                   msg: str,
                   exc_info: Optional[ExceptionInfoType] = None,
                   extra: Optional[Dict[str, Any]] = None,
-                  sentry: bool = False) -> None:
+                  sentry: bool = False,
+                  topic: Optional[Topic] = None) -> None:
 
-        self.log(logging.ERROR, msg, exc_info=exc_info, extra=extra, sentry=sentry)
+        self.log(logging.ERROR, msg, exc_info=exc_info, extra=extra, sentry=sentry, topic=topic)
 
 
 class ModuleAdapter(ContextAdapter):
@@ -1055,6 +1077,9 @@ class Logging(object):
 
     sentry: Optional['gluetool.sentry.Sentry'] = None
 
+    #: Logging topics
+    topics: Set[Topic]
+
     @staticmethod
     def get_logger() -> ContextAdapter:
 
@@ -1145,11 +1170,11 @@ class Logging(object):
     )
 
     @staticmethod
-    def _setup_log_file(filepath: str,
+    def _setup_log_file(filepath: str,  # pylint: disable=too-many-arguments
                         level: int,
                         limit_level: bool = False,
                         formatter_class: Type[Union[LoggingFormatter, JSONLoggingFormatter]] = LoggingFormatter,
-                        prettify: bool = False
+                        prettify: bool = False,
                        ) -> Optional[logging.FileHandler]:  # noqa
 
         if filepath is None:
@@ -1183,6 +1208,26 @@ class Logging(object):
 
         return handler
 
+    @staticmethod
+    def add_topic_filter() -> None:
+
+        def _topic_filter(record: logging.LogRecord) -> bool:
+            topic = getattr(record, 'topic', None)
+
+            # record has no topic
+            if not topic:
+                return True
+
+            # topic in enabled log topics
+            if topic in Logging.topics:
+                return True
+
+            # log topic of the record not enabled
+            return False
+
+        assert Logging.logger
+        Logging.logger.addFilter(_topic_filter)
+
     # pylint: disable=too-many-arguments,line-too-long
     @staticmethod
     def setup_logger(level: int = DEFAULT_LOG_LEVEL,
@@ -1193,7 +1238,8 @@ class Logging(object):
                      json_output: bool = False,
                      json_output_pretty: bool = False,
                      sentry: Optional['gluetool.sentry.Sentry'] = None,
-                     show_traceback: bool = False
+                     show_traceback: bool = False,
+                     topics: Optional[Set[Topic]] = None
                     ) -> ContextAdapter:  # noqa
 
         """
@@ -1221,11 +1267,14 @@ class Logging(object):
             server.
         :param bool show_traceback: if set, exception tracebacks would be sent to ``stderr`` handler
             as well as to the debug file.
+        :param list(Topic) topics: list of topics to log
         :rtype: ContextAdapter
         :returns: a :py:class:`ContextAdapter` instance, set up for logging.
         """
 
         level = level or logging.INFO
+
+        Logging.topics = topics or set()
 
         # store for later use by configure_logger & co.
         Logging.sentry = sentry
@@ -1274,19 +1323,23 @@ class Logging(object):
         # now our main logger should definitely exist and it should be usable
         logger = Logging.get_logger()
 
-        logger.debug('logger setup: level={}, debug file={}, verbose file={}, json file={}, sentry={}, show traceback={}'.format(
+        logger.debug('logger setup: level={}, debug file={}, verbose file={}, json file={}, sentry={}, show traceback={}, topics={}'.format(  # Ignore: PEP8Bear
             level,
             debug_file,
             verbose_file,
             json_file,
             'yes' if sentry else 'no',
-            show_traceback
+            show_traceback,
+            ','.join([topic.value for topic in topics]) if topics else None
         ))
 
         # Enable debug and verbose files
         Logging.enable_debug_file(logger)
         Logging.enable_verbose_file(logger)
         Logging.enable_json_file(logger)
+
+        # Add topics filter
+        Logging.add_topic_filter()
 
         list(map(Logging.enable_debug_file, Logging.OUR_LOGGERS))
         list(map(Logging.enable_verbose_file, Logging.OUR_LOGGERS))
