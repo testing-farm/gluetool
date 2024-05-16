@@ -44,8 +44,8 @@ def test_format_dict(data):
 def generate_topic_testcase(logfn, level, name=''):
     return pytest.param(
         logfn,
-        ('message',),
-        {'topic': Topic.EVAL_CONTEXT} if 'eval-context' in name else {},
+        'message',
+        Topic.EVAL_CONTEXT if 'eval-context' in name else None,
         [Topic.EVAL_CONTEXT] if 'eval-context-logged' in name else None,
         level,
         None if 'not-logged' in name else 'message',
@@ -53,7 +53,7 @@ def generate_topic_testcase(logfn, level, name=''):
     )
 
 
-@pytest.mark.parametrize('function, args, kwargs, topics, level, expected', [
+@pytest.mark.parametrize('function, msg, topic, topics, level, expected', [
     generate_topic_testcase('verbose', gluetool.log.VERBOSE),
     generate_topic_testcase('verbose', gluetool.log.VERBOSE, 'eval-context-logged'),
     generate_topic_testcase('verbose', gluetool.log.VERBOSE, 'eval-context-not-logged'),
@@ -70,12 +70,12 @@ def generate_topic_testcase(logfn, level, name=''):
     generate_topic_testcase('error', logging.ERROR, 'eval-context-logged'),
     generate_topic_testcase('error', logging.ERROR, 'eval-context-not-logged'),
 ])
-def test_log_topics(log, function, args, kwargs, topics, level, expected):
+def test_log_topics(log, function, msg, topic, topics, level, expected):
     logger = gluetool.log.Logging.setup_logger(topics=topics)
 
-    getattr(logger, function)(*args, **kwargs)
+    getattr(logger, function)(msg, topic=topic)
 
-    records = [record for record in log.records if record.levelno == level and record.message == expected]
+    records = [record for record in log.records if record.levelno == level and record.message == msg]
 
     if expected:
         assert len(records) == 1
@@ -84,7 +84,7 @@ def test_log_topics(log, function, args, kwargs, topics, level, expected):
     assert len(records) == 0
 
 
-@pytest.mark.parametrize('function, args, kwargs, topics, level, expected', [
+@pytest.mark.parametrize('function, msg, topic, topics, level, expected', [
     generate_topic_testcase('verbose', gluetool.log.VERBOSE),
     generate_topic_testcase('verbose', gluetool.log.VERBOSE, 'eval-context-logged'),
     generate_topic_testcase('verbose', gluetool.log.VERBOSE, 'eval-context-not-logged'),
@@ -101,14 +101,14 @@ def test_log_topics(log, function, args, kwargs, topics, level, expected):
     generate_topic_testcase('error', logging.ERROR, 'eval-context-logged'),
     generate_topic_testcase('error', logging.ERROR, 'eval-context-not-logged'),
 ])
-def test_log_topics_context_adapter(log, function, args, kwargs, topics, level, expected):
+def test_log_topics_context_adapter(log, function, msg, topic, topics, level, expected):
     logger_main = gluetool.log.Logging.setup_logger(topics=topics)
     adapter = ContextAdapter(logger=logger_main)
     logger = ContextAdapter(logger=adapter)
 
-    getattr(logger, function)(*args, **kwargs)
+    getattr(logger, function)(msg, topic=topic)
 
-    records = [record for record in log.records if record.levelno == level and record.message == expected]
+    records = [record for record in log.records if record.levelno == level and record.message == msg]
 
     if expected:
         assert len(records) == 1

@@ -624,6 +624,13 @@ class ContextAdapter(_LoggerAdapter):
             }
         )
 
+        # Make sure we add back the topic in case the self._logger is a ContextAdapter instance,
+        # otherwise it would not be propagated well. Note that topic is dropped from kwargs in the
+        # process function call above, what is fine, but only if self._logger is a logging.Logger
+        # instance.
+        if isinstance(self._logger, ContextAdapter):
+            kwargs['topic'] = topic
+
         self._logger.log(level, msg, **kwargs)
 
         if sentry and Logging.sentry:
