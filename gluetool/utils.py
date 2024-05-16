@@ -375,8 +375,9 @@ class StreamReader(object):
                     self._queue.append('')
                     return
 
-                self._queue.append(ensure_str(data))
-                self._content.append(ensure_str(data))
+                # Replace binary parts with replacement marker
+                self._queue.append(ensure_str(data, errors='replace'))
+                self._content.append(ensure_str(data, errors='replace'))
 
         self._thread = threading.Thread(target=_enqueue)
         self._thread.daemon = True
