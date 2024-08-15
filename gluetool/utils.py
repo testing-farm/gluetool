@@ -1044,6 +1044,7 @@ def YAML(loader_type: Optional[str] = None) -> ruamel.yaml.YAML:
 
     yaml = ruamel.yaml.YAML(typ=loader_type)
     yaml.indent(sequence=4, mapping=4, offset=2)
+    yaml.width = sys.maxsize  # type: ignore
 
     return yaml
 
