@@ -895,7 +895,7 @@ class LoggingFormatter(logging.Formatter):
 
         fmt = ['[{stamp}]', '[{level}]', '{msg}']
         values: Dict[str, str] = {
-            'stamp': self.formatTime(record, datefmt='%H:%M:%S'),
+            'stamp': self.formatTime(record, datefmt='%Y-%m-%d %H:%M:%S'),
             'level': LoggingFormatter._level_tags[record.levelno],
             'msg': record.getMessage()
         }
