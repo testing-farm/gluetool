@@ -250,6 +250,14 @@ def test_invalid_stdout(popen, log):
     _assert_logging(log, 3, command)
 
 
+def test_invalid_utf8(log):
+    command = ['echo -n "a" | tr "a" "\\342"']
+
+    Command(command).run(shell=True)
+
+    assert log.records[5].message == 'stdout:\n---v---v---v---v---v---\n�\n---^---^---^---^---^---'
+
+
 # This part of run_command probably needs refactoring, to be really testable... it's way
 # too complicated :/
 #

@@ -526,7 +526,8 @@ class Command(LoggerMixin, object):
         assert self._process is not None
 
         self._stdout, self._stderr = (
-            ensure_str(std, 'utf-8') if std is not None else std for std in self._process.communicate()
+            ensure_str(std, 'utf-8', errors='replace')
+            if std is not None else std for std in self._process.communicate()
         )
 
     def _communicate_inspect(self, inspect_callback: Optional[Callable[[Any, Optional[str], bool], None]]) -> None:
