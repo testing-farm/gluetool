@@ -1190,6 +1190,17 @@ class Configurable(LoggerMixin, object):
                 if params.get('action', '') == 'store_false' and value is True:
                     return
 
+            if isinstance(value, str) and value.startswith('@'):
+                # @ indicates we will be loading the value from a file
+                filepath = value[1:]
+
+                try:
+                    with open(filepath, 'r') as f:
+                        value = f.read()
+
+                except (OSError, UnicodeDecodeError) as e:
+                    raise GlueError("Unable to read file '{}': {}".format(filepath, e)) from e
+
             self._config[name] = value
             self.debug("Option '{}' set to '{}' by command-line".format(name, value))
 
