@@ -560,6 +560,7 @@ class Pipeline(LoggerMixin, object):
                          modules: Iterable['Module'],
                          callback: Callable[..., Optional[Failure]],
                          *args: Any,
+                         ignore_failure: bool = False,
                          **kwargs: Any) -> Optional[Failure]:
         """
         For each module in a list, call a given function with module as its first argument. If the call
@@ -569,6 +570,7 @@ class Pipeline(LoggerMixin, object):
         :param callable callback: a callback, accepting at least one parameter, current module of the loop.
             Must return either ``None`` or :py:class:`Failure` instance, although it can freely raise
             exceptions.
+        :param bool ignore_failure: ignore module failure
         :returns: value returned by ``callback``, or ``None`` when loop finished.
         """
 
@@ -584,7 +586,7 @@ class Pipeline(LoggerMixin, object):
             # return type.
             ret = self._safe_call(callback, module, *args, **kwargs)
 
-            if ret:
+            if ret and not ignore_failure:
                 return ret
 
         return None
@@ -732,7 +734,13 @@ class Pipeline(LoggerMixin, object):
             # or genuine `Failure` instance, representing the cause that killed the destroy stage.
             return destroy_failure
 
-        final_failure = self._for_each_module(reversed(self.modules), _destroy)
+        from .utils import normalize_bool_option
+
+        final_failure = self._for_each_module(
+            reversed(self.modules),
+            _destroy,
+            ignore_failure=normalize_bool_option(self.glue.option('ignore-destroy-failures'))
+        )
 
         self.current_module = None
         self.modules = []
@@ -1741,6 +1749,11 @@ class Glue(Configurable):
             ('V', 'version'): {
                 'help': 'Print version',
                 'action': 'store_true'
+            },
+            'ignore-destroy-failures': {
+                'help': 'If set, the destroy failures are ignored, but still reported.',
+                'action': 'store_true',
+                'default': False
             },
             'no-sentry-exceptions': {
                 'help': 'List of exception names, which are not reported to Sentry (Default: none)',

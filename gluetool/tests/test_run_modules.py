@@ -1,4 +1,5 @@
 # pylint: disable=blacklisted-name
+import logging
 
 import inspect
 import pytest
@@ -37,6 +38,11 @@ class BrokenBrokenModule(DummyModule):
     def destroy(self, failure=None):
         raise Exception('bar')
 
+class BrokenBrokenModule2(DummyModule):
+    name = 'Broken broken module 2'
+
+    def destroy(self, failure=None):
+        raise Exception('baz')
 
 @pytest.fixture(name='glue')
 def fixture_glue():
@@ -58,6 +64,11 @@ def fixture_glue():
         group='none'
     )
 
+    glue.modules['Broken broken module 2'] = gluetool.glue.DiscoveredModule(
+        klass=BrokenBrokenModule2,
+        group='none'
+    )
+
     return glue
 
 
@@ -71,6 +82,15 @@ def fixture_broken_pipeline(glue):
     return gluetool.glue.Pipeline(glue, [gluetool.glue.PipelineStepModule('Broken module')])
 
 
+@pytest.fixture(name='broken_pipeline_destroy')
+def fixture_broken_pipeline_destroy(glue):
+    return gluetool.glue.Pipeline(glue, [
+        gluetool.glue.PipelineStepModule('Dummy module'),
+        gluetool.glue.PipelineStepModule('Broken broken module'),
+        gluetool.glue.PipelineStepModule('Broken broken module 2'),
+    ])
+
+
 @pytest.fixture(name='module')
 def fixture_module():
     return create_module(DummyModule, name=DummyModule.name)[1]
@@ -79,11 +99,6 @@ def fixture_module():
 @pytest.fixture(name='broken_module')
 def fixture_broken_module():
     return create_module(BrokenModule, name=BrokenModule.name)[1]
-
-
-@pytest.fixture(name='broken_broken_module')
-def fixture_broken_broken_module():
-    return create_module(BrokenBrokenModule, name=BrokenBrokenModule.name)[1]
 
 
 def test_safe_call(pipeline):
@@ -142,6 +157,17 @@ def test_for_each_module_exception(pipeline, module, broken_module):
 
     assert isinstance(ret, gluetool.Failure)
     assert str(ret.exception) == 'bar'
+
+
+def test_for_each_module_ignore_failure(pipeline, module, broken_module):
+    modules = [
+        module,
+        broken_module
+    ]
+
+    ret = pipeline._for_each_module(modules, lambda mod: mod.execute(), ignore_failure=True)
+
+    assert ret is None
 
 
 def test_pipeline_setup(pipeline):
@@ -230,6 +256,21 @@ def test_add_shared_on_error(glue, broken_pipeline, monkeypatch):
     # should be added despite that.
 
     _test_add_shared(glue, broken_pipeline, monkeypatch, BrokenModule)
+
+@pytest.mark.parametrize('ignore_failures', [
+    True,
+    False
+])
+def test_pipeline_destroy(glue, broken_pipeline_destroy, log, ignore_failures):
+    glue._config['ignore-destroy-failures'] = ignore_failures
+
+    glue.run_pipeline(broken_pipeline_destroy)
+
+    assert log.match(levelno=logging.DEBUG, message="destroying modules")
+    assert log.match(levelno=logging.ERROR, message="Exception raised while destroying module: baz")
+
+    if ignore_failures:
+        assert log.match(levelno=logging.ERROR, message="Exception raised while destroying module: bar")
 
 
 def test_add_shared_missing(pipeline, module):
