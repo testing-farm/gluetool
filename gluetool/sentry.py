@@ -66,13 +66,16 @@ class Sentry(object):
         to users of this class.
     :param str tags_map_env_var: Name of environment variable setting mapping between environment
         variables and additional tags. Set to ``None`` to disable adding these tags.
+    :param str ca_certs_env_var: Name of environment variable setting path to CA certificates
     """
 
+    # pylint: disable=too-many-arguments
     def __init__(self,
                  dsn_env_var: Optional[str] = 'SENTRY_DSN',
                  base_url_env_var: Optional[str] = 'SENTRY_BASE_URL',
                  event_url_template_env_var: Optional[str] = 'SENTRY_EVENT_URL_TEMPLATE',
-                 tags_map_env_var: Optional[str] = 'SENTRY_TAG_MAP') -> None:
+                 tags_map_env_var: Optional[str] = 'SENTRY_TAG_MAP',
+                 ca_certs_env_var: Optional[str] = 'REQUESTS_CA_BUNDLE') -> None:
 
         self._client = None
         self._base_url = None
@@ -127,7 +130,8 @@ class Sentry(object):
                 sentry_sdk.integrations.modules.ModulesIntegration(),
                 sentry_sdk.integrations.argv.ArgvIntegration(),
                 sentry_sdk.integrations.threading.ThreadingIntegration()
-            ]
+            ],
+            ca_certs=os.environ.get(ca_certs_env_var) if ca_certs_env_var else None
 
         )
 
