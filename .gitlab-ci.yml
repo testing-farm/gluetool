@@ -62,3 +62,12 @@ py39-docs:
   artifacts:
     paths:
       - docs/build/html
+
+release:
+  script:
+    # todo remove once in python ci image
+    - poetry self add "poetry-dynamic-versioning[plugin]"
+    - poetry config repositories.gluetool https://upload.pypi.org/legacy/
+    - poetry publish --build --repository gluetool
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v.*-.*/
