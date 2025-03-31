@@ -1,4 +1,5 @@
 [project]
+name = "gluetool"
 dynamic = ["version"]
 
 [tool.poetry]
@@ -109,7 +110,6 @@ gluetool-html-log = "gluetool.html_log:main"
 ".bash_completion" = "gluetool_modules.bash_completion:BashCompletion"
 ".dep_list" = "gluetool_modules.dep_list:DepList"
 ".yaml_pipeline" = "gluetool_modules.yaml_pipeline:YAMLPipeline"
-
 
 [tool.poetry-dynamic-versioning]
 enable = true
