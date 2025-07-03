@@ -77,8 +77,15 @@ def test_init_environ(monkeypatch):
             'Pipeline timeout expired',
             'Signal SIGUSR1 received',
         ),
+        (
+            signal.SIGUSR2,
+            gluetool.GlueError,
+            ['sh'],
+            'Pipeline out-of-memory',
+            'Signal SIGUSR2 received',
+        ),
     ],
-    ids=['SIGINT', 'SIGINT-no-process-tree', 'SIGTERM', 'SIGUSR1']
+    ids=['SIGINT', 'SIGINT-no-process-tree', 'SIGTERM', 'SIGUSR1', 'SIGUSR2']
 )
 def test_signal(monkeypatch, log, tested_signal, exception, terminate_process_tree, excmsg, warnmsg):
     tool = gluetool.tool.Gluetool()
@@ -131,7 +138,10 @@ def test_signal(monkeypatch, log, tested_signal, exception, terminate_process_tr
     # * shell process can die before we send SIGKILL to it
     # * we expect that at least one sleep command receives both signals
     # * log.match can match whole strings only, and we have no idea what the PID of sleep processes will be
-    assert log.match(levelno=logging.WARNING, message="Sending SIGTERM to child process 'sh' (PID {})".format(process.pid))
+    if tested_signal == signal.SIGUSR2:
+        assert not log.match(levelno=logging.WARNING, message="Sending SIGTERM to child process 'sh' (PID {})".format(process.pid))
+    else:
+        assert log.match(levelno=logging.WARNING, message="Sending SIGTERM to child process 'sh' (PID {})".format(process.pid))
 
     sleep_sigterm = any(
             True
@@ -152,7 +162,11 @@ def test_signal(monkeypatch, log, tested_signal, exception, terminate_process_tr
 
     # sleep should be terminated only if terminate_process_tree set, because it is a child process of `sh`
     if terminate_process_tree:
-        assert sleep_sigterm
+        # SIGUSR2 - pipeline killed does not SIGTERM processes, it kills them right away
+        if tested_signal == signal.SIGUSR2:
+            assert not sleep_sigterm
+        else:
+            assert sleep_sigterm
         assert sleep_sigkill
     else:
         assert not sleep_sigterm

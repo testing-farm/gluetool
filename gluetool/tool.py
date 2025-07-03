@@ -42,8 +42,6 @@ DEFAULT_GLUETOOL_CONFIG_PATHS = [
     normalize_path('./.gluetool.d/gluetool')
 ]
 
-DEFAULT_HANDLED_SIGNALS = (signal.SIGUSR2,)
-
 DEFAULT_SIGTERM_TIMEOUT = 60
 
 
@@ -297,7 +295,12 @@ Will try to submit it to Sentry but giving up on everything else.
         orig_sigint_handler = signal.getsignal(signal.SIGINT)
         sigmap = {getattr(signal, name): name for name in [name for name in dir(signal) if name.startswith('SIG')]}
 
-        def _terminate_or_kill(child: psutil.Process, description: str) -> None:
+        def _terminate_or_kill(child: psutil.Process, description: str, kill_only: bool = False) -> None:
+            if kill_only:
+                Glue.warn("Sending SIGKILL to {} process '{}' (PID {})".format(description, child.name(), child.pid))
+                child.kill()
+                return
+
             Glue.warn("Sending SIGTERM to {} process '{}' (PID {})".format(description, child.name(), child.pid))
             child.terminate()
 
@@ -308,7 +311,7 @@ Will try to submit it to Sentry but giving up on everything else.
                 Glue.warn("Sending SIGKILL to child process '{}' (PID {})".format(child.name(), child.pid))
                 child.kill()
 
-        def _terminate_children() -> None:
+        def _terminate_children(kill_only: bool = False) -> None:
             process = psutil.Process()
 
             # Terminate child processes. For children marked by `--terminate-process-tree` terminate whole process tree.
@@ -316,8 +319,8 @@ Will try to submit it to Sentry but giving up on everything else.
             for child in process.children():
                 if child.name() in terminate_process_tree:
                     for process in sorted(child.children(recursive=True), key=lambda x: x.pid, reverse=True):
-                        _terminate_or_kill(process, "grandchild")
-                _terminate_or_kill(child, "child")
+                        _terminate_or_kill(process, "grandchild", kill_only=kill_only)
+                _terminate_or_kill(child, "child", kill_only=kill_only)
 
             # Terminate leftover processes in the same proccess group. For children marked by `--terminate-process-tree`
             # terminate whole process tree.
@@ -328,12 +331,13 @@ Will try to submit it to Sentry but giving up on everything else.
                     if os.getpgid(proc.pid) == process_pgid and proc.pid != process.pid
                 ]
                 for process in leftovers:
-                    _terminate_or_kill(process, "process group leftover")
+                    _terminate_or_kill(process, "process group leftover", kill_only=kill_only)
 
         def _signal_handler(signum: int,
                             frame: Optional[FrameType],
                             handler: Optional[Callable[[int, FrameType], None]] = None,
-                            msg: Optional[str] = None) -> Any:
+                            msg: Optional[str] = None,
+                            kill_only: bool = False) -> Any:
 
             msg = msg or 'Signal {} received'.format(sigmap[signum])
 
@@ -342,7 +346,7 @@ Will try to submit it to Sentry but giving up on everything else.
             # Provide a flag for modules to check if they should try to finish as early as possible
             Glue.pipeline_cancelled = True
 
-            _terminate_children()
+            _terminate_children(kill_only=kill_only)
 
             if handler is not None and frame is not None:
                 return handler(signum, frame)
@@ -352,11 +356,17 @@ Will try to submit it to Sentry but giving up on everything else.
 
             raise GlueError('Pipeline timeout expired.')
 
+        def _sigusr2_handler(signum: int, frame: FrameType) -> None:
+            # pylint: disable=unused-argument
+
+            raise GlueError('Pipeline out-of-memory.')
+
         sigint_handler = functools.partial(_signal_handler,
                                            handler=orig_sigint_handler, msg='Interrupted by SIGINT (Ctrl+C?)')
         sigterm_handler = functools.partial(_signal_handler,
                                             handler=orig_sigint_handler, msg='Interrupted by SIGTERM')
         sigusr1_handler = functools.partial(_signal_handler, handler=_sigusr1_handler)
+        sigusr2_handler = functools.partial(_signal_handler, handler=_sigusr2_handler, kill_only=True)
 
         # pylint: disable=invalid-name
         Glue = self.Glue = gluetool.glue.Glue(tool=self, sentry=self.sentry)
@@ -365,9 +375,7 @@ Will try to submit it to Sentry but giving up on everything else.
         signal.signal(signal.SIGINT, sigint_handler)
         signal.signal(signal.SIGTERM, sigterm_handler)
         signal.signal(signal.SIGUSR1, sigusr1_handler)
-
-        for signum in DEFAULT_HANDLED_SIGNALS:
-            signal.signal(signum, _signal_handler)
+        signal.signal(signal.SIGUSR2, sigusr2_handler)
 
         # process configuration
         Glue.parse_config(self.gluetool_config_paths)
