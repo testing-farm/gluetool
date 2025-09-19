@@ -704,6 +704,8 @@ class Pipeline(LoggerMixin, object):
 
         self.debug('destroying modules')
 
+        self.glue.pipeline_destroying = True
+
         def _destroy(module: Module) -> Optional[Failure]:
 
             # If we simply called module's `destroy` method, possible exception would be logged as any
@@ -1692,6 +1694,15 @@ class Module(Configurable):
 
         return self.glue.pipeline_cancelled
 
+    @property
+    def pipeline_destroying(self) -> bool:
+        """
+        Returns `True` if pipeline is being destroyed.
+        Useful signal for modules using threads to handle special cases.
+        """
+
+        return self.glue.pipeline_destroying
+
 
 #: Describes one discovered ``gluetool`` module.
 #:
@@ -2457,6 +2468,9 @@ class Glue(Configurable):
 
         # Marks pipeline cancelled by signals, useful for modules using threads
         self.pipeline_cancelled = False
+
+        # Pipeline is destroying, useful for modules using threads
+        self.pipeline_destroying = False
 
     # pylint: disable=arguments-differ
     def parse_config(self, paths: List[str]) -> None:  # type: ignore  # signature differs on purpose

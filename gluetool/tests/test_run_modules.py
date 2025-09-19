@@ -31,6 +31,11 @@ class BrokenModule(DummyModule):
     def execute(self):
         raise Exception('bar')
 
+class DestroyingModule(DummyModule):
+    name = 'Destroying module'
+
+    def destroy(self, failure=None):
+        raise Exception("pipeline_destroying={}".format(self.pipeline_destroying))
 
 class BrokenBrokenModule(DummyModule):
     name = 'Broken broken module'
@@ -69,12 +74,22 @@ def fixture_glue():
         group='none'
     )
 
+    glue.modules['Destroying module'] = gluetool.glue.DiscoveredModule(
+        klass=DestroyingModule,
+        group='none'
+    )
+
     return glue
 
 
 @pytest.fixture(name='pipeline')
 def fixture_pipeline(glue):
     return gluetool.glue.Pipeline(glue, [gluetool.glue.PipelineStepModule('Dummy module')])
+
+
+@pytest.fixture(name='destroying_pipeline')
+def fixture_destroying_pipeline(glue):
+    return gluetool.glue.Pipeline(glue, [gluetool.glue.PipelineStepModule('Destroying module')])
 
 
 @pytest.fixture(name='broken_pipeline')
@@ -198,6 +213,15 @@ def test_pipeline_execute(pipeline, monkeypatch):
     pipeline._execute()
 
     pipeline.modules[0].execute.assert_called_once_with()
+    assert pipeline.modules[0].pipeline_cancelled is False
+    assert pipeline.modules[0].pipeline_destroying is False
+
+
+def test_pipeline_destroying(destroying_pipeline):
+    destroying_pipeline._setup()
+    destroying_pipeline._sanity()
+
+    assert str(destroying_pipeline._destroy().exception) == 'pipeline_destroying=True'
 
 
 def test_pipeline_run(pipeline, monkeypatch):
