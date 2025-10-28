@@ -1624,8 +1624,13 @@ def wait(label: str,
 
         return '{} seconds'.format(int(end_time - time.time())) if timeout is not None else 'infinite'
 
-    logger.debug("waiting for condition '{}', timeout {}, check every {} seconds".format(label, _timeout(),
-                                                                                         tick))
+    logger.debug(
+        "waiting for condition '{}', timeout {}, check every {} seconds".format(
+            label, _timeout(), tick
+        )
+    )
+
+    check_result: Result[T, Any] = Result.Error("No error returned from the wait check.")
 
     while timeout is None or time.time() < end_time:
         logger.debug("calling callback function")
@@ -1642,7 +1647,13 @@ def wait(label: str,
         logger.debug('{} left, sleeping for {} seconds'.format(_timeout(), tick))
         time.sleep(tick)
 
-    raise GlueError("Condition '{}' failed to pass within given time".format(label))
+    error_message = "\n\n{}".format(str(check_result.value)) if str(check_result.value) else ""
+
+    # NOTE: Use plain GlueError so we can map this error easily to other user facing error if needed.
+    raise GlueError("Condition '{}' failed to pass within given time.{}".format(
+        label,
+        error_message
+    ))
 
 
 def new_xml_element(tag_name: str, _parent: Optional[Any] = None, **attrs: str) -> Any:

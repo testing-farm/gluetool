@@ -42,7 +42,7 @@ def test_sanity(log: Any) -> None:
 
 
 def test_timeout():
-    with pytest.raises(gluetool.GlueError, match=r"Condition 'dummy check' failed to pass within given time"):
+    with pytest.raises(gluetool.GlueError, match="Condition 'dummy check' failed to pass within given time.\n\nnever going to pass"):
         wait('dummy check', lambda: Error('never going to pass'), timeout=2, tick=1)
 
 
