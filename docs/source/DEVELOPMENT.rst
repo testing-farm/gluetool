@@ -31,6 +31,8 @@ To begin digging into ``gluetool`` sources, there are few requirements:
 
 -  ``ansible-playbook``
 
+-  ``pre-commit``
+
 Installation
 ------------
 
@@ -49,7 +51,14 @@ Installation
     cd gluetool
     poetry install
 
-3. (optional) Activate Bash completion
+3. Enable pre-commit
+~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+    pre-commit install
+
+4. (optional) Activate Bash completion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Poetry's virtualenv can be found with:
@@ -67,7 +76,7 @@ We can source the generated bash completion script at the end of the ``virtualen
 
 It will start working next time you activate your virtualenv via ``poetry shell``. To activate bash completion immediately, source the generated file.
 
-4. Add configuration
+5. Add configuration
 ~~~~~~~~~~~~~~~~~~~~~~
 
 ``gluetool`` looks for its configuration in a local directory (among others), in ``./.gluetool.d`` to be specific. Add

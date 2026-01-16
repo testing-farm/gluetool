@@ -30,6 +30,8 @@ image: "quay.io/testing-farm/python-ci-image:latest"
   stage: test
   before_script:
     - dnf -y install libxslt-devel
+    - poetry env use python3.12
+    - poetry install
   artifacts:
     paths:
       - coverage-report
@@ -40,6 +42,10 @@ image: "quay.io/testing-farm/python-ci-image:latest"
 type-check:
   extends: .tests
   script: tox -e type-check
+
+pre-commit:
+  extends: .tests
+  script: pre-commit run --all-files
 
 py312-docs:
   extends: .tests

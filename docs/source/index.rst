@@ -30,7 +30,7 @@ Table of contents
 .. toctree::
    :maxdepth: 1
 
-   framework 
+   framework
    howto-modules
    features
    howto-tests

@@ -57,7 +57,7 @@ The `gluetool` file defines the default options for the ``gluetool`` command its
 
   .. code-block:: bash
 
-    $ cat ~/.gluetool.d/gluetool 
+    $ cat ~/.gluetool.d/gluetool
     [default]
     debug = True
 
