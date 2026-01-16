@@ -10,7 +10,7 @@ function-rgx = [a-z_][a-z0-9_]{2,40}$
 
 [MESSAGES CONTROL]
 # Re-enable these ASAP
-disable=missing-docstring,logging-format-interpolation,too-many-locals,duplicate-code,inconsistent-return-statements,useless-object-inheritance,import-outside-toplevel,cyclic-import,consider-using-f-string,unspecified-encoding
+disable=missing-docstring,logging-format-interpolation,too-many-locals,duplicate-code,inconsistent-return-statements,useless-object-inheritance,import-outside-toplevel,cyclic-import,consider-using-f-string,unspecified-encoding,too-many-positional-arguments
 
 [TYPECHECK]
 # ignore kerberos module

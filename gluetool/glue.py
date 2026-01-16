@@ -8,12 +8,10 @@ import inspect
 import logging
 import os
 import sys
-import warnings
 import configparser
 import io
 
-# pylint: disable=deprecated-module
-import imp
+import importlib.util
 
 from functools import partial
 
@@ -2280,10 +2278,14 @@ class Glue(Configurable):
         self.debug("try to import '{}' as a module '{}'".format(filepath, pm_name))
 
         try:
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore', RuntimeWarning)
+            spec = importlib.util.spec_from_file_location(pm_name, filepath)
 
-                pm = imp.load_source(pm_name, filepath)
+            if spec is None or spec.loader is None:
+                raise GlueError("Unable to create module spec for '{}'".format(filepath))
+
+            pm = importlib.util.module_from_spec(spec)
+            sys.modules[pm_name] = pm
+            spec.loader.exec_module(pm)
 
             self.debug('imported file {} as a Python module {}'.format(filepath, pm_name))
 
@@ -2395,6 +2397,7 @@ class Glue(Configurable):
             klass = ep_entry.load()
 
             assert ep_entry.dist is not None
+            assert ep_entry.dist.location is not None
 
             self._register_module(registry, getattr(klass, 'group', ''), klass, ep_entry.dist.location)
 

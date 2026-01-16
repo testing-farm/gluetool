@@ -201,7 +201,7 @@ class Gluetool(object):
         assert failure.exc_info[1] is not None
 
         # Handle simple 'sys.exit(0)' - no exception happened
-        if failure.exc_info[0] == SystemExit:
+        if failure.exc_info[0] is SystemExit:
             assert isinstance(failure.exc_info[1], SystemExit)  # collapse type to SystemExit to make mypy happy
 
             if failure.exc_info[1].code == 0:

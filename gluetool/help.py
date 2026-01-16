@@ -25,7 +25,7 @@ import sphinx.locale
 import sphinx.util.nodes
 
 import six
-from six import PY2, ensure_str, iteritems
+from six import ensure_str, iteritems
 
 from .color import Colors
 from .log import Logging
@@ -110,7 +110,7 @@ def C_LITERAL(text: str) -> str:
 _original_TextTranslator = sphinx.writers.text.TextTranslator
 
 
-# pylint: disable=abstract-method
+# pylint: disable=abstract-method,unused-argument
 class TextTranslator(sphinx.writers.text.TextTranslator):  # type: ignore
     # literals, ``foo``
     def visit_literal(self, node: Any) -> None:
@@ -384,12 +384,7 @@ def function_help(func: Callable[..., Any], name: Optional[str] = None) -> Tuple
     name = name or func.__name__
 
     # construct function signature
-    # with Python 3 use getfullargspec instead of getargspec
-    if PY2:
-        # pylint: disable=deprecated-method
-        signature = inspect.getargspec(func)
-    else:
-        signature = inspect.getfullargspec(func)  # pylint: disable=no-member
+    signature = inspect.getfullargspec(func)
 
     no_default = object()
 

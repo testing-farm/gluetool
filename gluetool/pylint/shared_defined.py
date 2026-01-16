@@ -4,8 +4,7 @@ Check whether all shared functions, as declared by a module, are actually define
 
 import astroid
 
-from pylint.checkers import BaseChecker, utils
-from pylint.interfaces import IAstroidChecker
+from pylint.checkers import BaseChecker
 
 
 BASE_ID = 76
@@ -40,8 +39,6 @@ class SharedFunctionDefinedChecker(BaseChecker):
     The message ID is ``gluetool-undefined-shared``.
     """
 
-    __implements__ = (IAstroidChecker,)
-
     name = 'gluetool-undefined-shared-checker'
     priority = -1
 
@@ -59,14 +56,12 @@ class SharedFunctionDefinedChecker(BaseChecker):
     # like any other module-level classes is simple way to actually skip them.
     _klass_stack = []
 
-    @utils.check_messages(MESSAGE_ID)
     def visit_classdef(self, node):
         # Each item on the stack is one ClassDef entered (and not left yet), represented
         # by a tuple of three items: (class name, list names class announced as being shared,
         # class-level members).
         self._klass_stack.append((node.name, [], []))
 
-    @utils.check_messages(MESSAGE_ID)
     def leave_classdef(self, node):
         klass_name, announced_functions, class_members = self._klass_stack.pop(-1)
 
@@ -76,7 +71,6 @@ class SharedFunctionDefinedChecker(BaseChecker):
 
             self.add_message(self.MESSAGE_ID, args=(name, klass_name), node=node)
 
-    @utils.check_messages(MESSAGE_ID)
     def visit_assign(self, node):
         # If the checker is disabled, we simly skip adding shared functions, therefore the test will
         # run, when leaving classdef, with an empty list of shared functions, finding nothing wrong.
@@ -122,7 +116,6 @@ class SharedFunctionDefinedChecker(BaseChecker):
 
             self._klass_stack[-1][2].append(target.name)
 
-    @utils.check_messages(MESSAGE_ID)
     def visit_functiondef(self, node):
         # If the class stack is empty, we're not inside class definition, therefore this function is not
         # a module class method, therefore it cannot be a shared function. Move on, nothing to see here.

@@ -30,10 +30,10 @@ repos:
       - id: isort
         name: isort (python)
 
-  - repo: https://gitlab.com/pycqa/flake8.git
-    rev: 3.8.4
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.6
     hooks:
-      - id: flake8
+      - id: ruff
 
   - repo: https://github.com/psf/black.git
     rev: 20.8b1

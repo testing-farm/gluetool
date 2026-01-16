@@ -4,8 +4,7 @@ Checker for option default values.
 
 import six
 
-from pylint.checkers import BaseChecker, utils
-from pylint.interfaces import IAstroidChecker
+from pylint.checkers import BaseChecker
 
 
 BASE_ID = 76
@@ -69,8 +68,6 @@ class OptionDefaultChecker(BaseChecker):
     The message ID is ``gluetool-option-default``.
     """
 
-    __implements__ = (IAstroidChecker,)
-
     name = 'gluetool-option-default-checker'
     priority = -1
 
@@ -96,7 +93,6 @@ class OptionDefaultChecker(BaseChecker):
         )
     }
 
-    @utils.check_messages(MESSAGE_ID_NO_DEFAULT, MESSAGE_ID_NO_DEFAULT_IN_HELP, MESSAGE_ID_HARD_DEFAULT)
     def visit_module(self, node):
         # One of the first nodes the checker hits is the Module. Before inspecting any calls
         # to self.option, we must inspect it and find option definitions because there might

@@ -9,8 +9,7 @@ will be fixed later.
 import astroid
 import six
 
-from pylint.checkers import BaseChecker, utils
-from pylint.interfaces import IAstroidChecker
+from pylint.checkers import BaseChecker
 
 
 BASE_ID = 76
@@ -49,8 +48,6 @@ class OptionNameMatchChecker(BaseChecker):
     The message ID is ``gluetool-unknown-option``.
     """
 
-    __implements__ = (IAstroidChecker,)
-
     name = 'gluetool-unknown-option-checker'
     priority = -1
 
@@ -76,7 +73,6 @@ class OptionNameMatchChecker(BaseChecker):
 
         OPTION_NAMES[node.root().file] = list(six.iterkeys(gatherer.options))
 
-    @utils.check_messages(MESSAGE_ID)
     def visit_call(self, node):
         # pylint: disable=too-many-return-statements
 

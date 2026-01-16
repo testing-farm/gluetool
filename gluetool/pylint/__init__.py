@@ -4,8 +4,7 @@ Handy custom PyLint checkers.
 
 import collections
 
-# pylint: disable=deprecated-module
-import imp
+import types
 
 import astroid
 import pylint.utils
@@ -75,7 +74,7 @@ class OptionsGatherer(object):
         # pylint: disable=exec-used
 
         # Create a dummy module object, a placeholder.
-        module = imp.new_module('dummy-module')
+        module = types.ModuleType('dummy-module')
 
         # Fill it with the module data by executing the module AST node withing the context
         # of our placeholder's namespace.
@@ -108,7 +107,7 @@ class OptionsGatherer(object):
             _add_options(executed_options)
             return
 
-        raise Exception('Unknown options type {}'.format(type(executed_options)))
+        raise TypeError('Unknown options type {}'.format(type(executed_options)))
 
 
 def register(linter):

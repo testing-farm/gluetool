@@ -2,7 +2,7 @@ stages:
   - test
   - security
 
-image: "quay.io/testing-farm/python-ci-image:2023-05-23-73a71064"
+image: "quay.io/testing-farm/python-ci-image:latest"
 
 #
 # Poetry and MyPy colors
@@ -41,20 +41,20 @@ type-check:
   extends: .tests
   script: tox -e type-check
 
-py39-static:
+py312-docs:
   extends: .tests
-  script: tox -e py39-static-analysis
-
-py39-unit:
-  extends: .tests
-  script: tox -e py39-unit-tests
-
-py39-docs:
-  extends: .tests
-  script: tox -e py39-docs
+  script: tox -e py312-docs
   artifacts:
     paths:
       - docs/build/html
+
+py312-static:
+  extends: .tests
+  script: tox -e py312-static-analysis
+
+py312-unit:
+  extends: .tests
+  script: tox -e py312-unit-tests
 
 release:
   script:
