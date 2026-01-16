@@ -1,5 +1,6 @@
 stages:
   - test
+  - security
 
 image: "quay.io/testing-farm/python-ci-image:2023-05-23-73a71064"
 
@@ -63,3 +64,15 @@ release:
     - poetry publish --build --repository gluetool
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+/
+
+trivy-scan:
+  stage: security
+  needs: []
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy fs --exit-code 1 --scanners vuln,secret .
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+    - if: '$CI_COMMIT_BRANCH == "main"'
