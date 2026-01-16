@@ -27,8 +27,6 @@ classifiers = [
   'Intended Audience :: System Administrators',
   'License :: OSI Approved :: BSD License',
   'Operating System :: POSIX :: Linux',
-  'Programming Language :: Python :: 3.7',
-  'Programming Language :: Python :: 3.8',
   'Programming Language :: Python :: 3.9',
   'Programming Language :: Python :: Implementation :: CPython',
   'Topic :: Software Development :: Libraries :: Application Frameworks',
@@ -49,7 +47,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "~3.8 || ~3.9"
+python = "~3.9"
 beautifulsoup4 = "*"
 colorama = "*"
 configparser = "*"
