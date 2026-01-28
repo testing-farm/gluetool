@@ -4,7 +4,7 @@ dynamic = ["version"]
 
 [tool.poetry]
 name = "gluetool"
-version = "2.19.post3.dev0+e05a610"
+version = "0.0.0"
 description = "Python framework for constructing command-line pipelines."
 authors = [
   "Milos Prchlik <mprchlik@redhat.com>",
