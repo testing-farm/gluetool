@@ -64,7 +64,10 @@ py312-unit:
 
 release:
   script:
-    # todo remove once in python ci image
+    # WORKAROUND: Python-3.12+ dropped distutils, install setuptools which provides compatibility layer
+    # https://github.com/python-poetry/poetry/issues/9004
+    - /root/.local/share/pypoetry/venv/bin/pip install setuptools
+    # TODO: remove once in python ci image
     - poetry self add "poetry-dynamic-versioning[plugin]"
     - poetry config repositories.gluetool https://upload.pypi.org/legacy/
     - poetry publish --build --repository gluetool
