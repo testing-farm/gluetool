@@ -106,7 +106,7 @@ gluetool-html-log = "gluetool.html_log:main"
 ".yaml_pipeline" = "gluetool_modules.yaml_pipeline:YAMLPipeline"
 
 [tool.poetry-dynamic-versioning]
-enable = false
+enable = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
