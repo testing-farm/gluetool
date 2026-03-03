@@ -7,7 +7,7 @@ import re
 import signal
 import subprocess
 
-import pkg_resources
+import importlib.metadata
 import pytest
 from mock import MagicMock
 
@@ -28,9 +28,9 @@ def test_basic(monkeypatch, tool):
     assert tool.gluetool_config_paths == gluetool.tool.DEFAULT_GLUETOOL_CONFIG_PATHS
 
     monkeypatch.setattr(
-        pkg_resources,
-        'get_distribution',
-        MagicMock(return_value=MagicMock(version='some-version')),
+        importlib.metadata,
+        'version',
+        MagicMock(return_value='some-version'),
     )
     assert tool._version == 'some-version'
 

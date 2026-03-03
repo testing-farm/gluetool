@@ -1,10 +1,11 @@
 # pylint: disable=blacklisted-name
 
+import importlib.metadata
 import logging
+
 import pytest
 
 import gluetool
-import pkg_resources
 
 from mock import MagicMock
 
@@ -74,10 +75,12 @@ def test_register_module_name_conflict(log, glue):
 def test_discover_gm_in_entry(log, monkeypatch, glue):
     registry = {}
 
-    mock_ep = MagicMock(load=MagicMock(return_value=DummyModule), dist=MagicMock(location='dummy-filepath'))
-    mock_iter_entry_points = MagicMock(return_value=[mock_ep])
+    mock_dist = MagicMock()
+    mock_dist.locate_file.return_value = 'dummy-filepath'
+    mock_ep = MagicMock(load=MagicMock(return_value=DummyModule), dist=mock_dist)
+    mock_entry_points = MagicMock(return_value=[mock_ep])
 
-    monkeypatch.setattr(pkg_resources, 'iter_entry_points', mock_iter_entry_points)
+    monkeypatch.setattr(importlib.metadata, 'entry_points', mock_entry_points)
 
     glue._discover_gm_in_entry_point('dummy-entry-point', registry)
 

@@ -12,6 +12,7 @@ import sys
 import configparser
 import io
 
+import importlib.metadata
 import importlib.util
 
 from functools import partial
@@ -20,7 +21,6 @@ from six import iterkeys, itervalues, iteritems, ensure_str, text_type
 
 import jinja2
 import mock
-import pkg_resources
 
 from .action import Action
 from .color import Colors, switch as switch_colors
@@ -2394,13 +2394,14 @@ class Glue(Configurable):
 
         self.debug('discovering modules in entry point {}'.format(entry_point))
 
-        for ep_entry in pkg_resources.iter_entry_points(entry_point):
+        for ep_entry in importlib.metadata.entry_points(group=entry_point):
             klass = ep_entry.load()
 
             assert ep_entry.dist is not None
-            assert ep_entry.dist.location is not None
 
-            self._register_module(registry, getattr(klass, 'group', ''), klass, ep_entry.dist.location)
+            location = str(ep_entry.dist.locate_file(''))
+
+            self._register_module(registry, getattr(klass, 'group', ''), klass, location)
 
     def discover_modules(self,
                          entry_points: Optional[List[str]] = None,

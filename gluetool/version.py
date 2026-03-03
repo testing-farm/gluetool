@@ -1,7 +1,7 @@
-from pkg_resources import get_distribution, DistributionNotFound
+from importlib.metadata import version, PackageNotFoundError
 
 try:
-    __version__ = get_distribution('gluetool').version
+    __version__ = version('gluetool')
 
-except DistributionNotFound:
+except PackageNotFoundError:
     pass
