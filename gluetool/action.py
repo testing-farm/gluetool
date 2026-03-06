@@ -57,11 +57,15 @@ from six import iteritems
 from .log import Logging
 from .result import Result
 
-try:
-    import jaeger_client as tracing_client
-
-except ImportError:
+if os.getenv('GLUETOOL_TRACING_DISABLE'):
     tracing_client = None
+
+else:
+    try:
+        import jaeger_client as tracing_client
+
+    except (ImportError, AttributeError):
+        tracing_client = None
 
 # Type annotations
 # pylint: disable=unused-import, wrong-import-order
