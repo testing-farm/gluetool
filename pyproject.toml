@@ -102,6 +102,11 @@ gluetool-html-log = "gluetool.html_log:main"
 ".bash_completion" = "gluetool_modules.bash_completion:BashCompletion"
 ".yaml_pipeline" = "gluetool_modules.yaml_pipeline:YAMLPipeline"
 
+
+[tool.poetry.group.dev.dependencies]
+opentelemetry-sdk = "^1.40.0"
+opentelemetry-exporter-otlp-proto-grpc = "^1.40.0"
+
 [tool.poetry-dynamic-versioning]
 enable = true
 

@@ -3,9 +3,9 @@ Actions are pieces of workflow. Actions have a name and start/end time, and acti
 
 This module provides simple instrumentation to enable logging of actions, and - when client
 libraries are installed - submission of actions to storages compatible with
-<https://opentracing.io/docs/overview/>`_.
+`OpenTelemetry <https://opentelemetry.io/>`_.
 
-Actions - which are wrapping Open Tracing's _span_ objects - can form an acyclic graph - actions
+Actions - which are wrapping OpenTelemetry's _span_ objects - can form an acyclic graph - actions
 can have a single parent, it is then possible to start with a "root" action (e.g. "running the pipeline")
 from which are children actions spawned (e.g. "executing module") and these actions can become parents
 to actions spawned deeper in modules, end so on and on, forming a nice overview of what the code did, how
@@ -34,37 +34,38 @@ When a supported tracing client is installed, spans created by actions actions a
 
 Supported clients:
 
-    * https://github.com/jaegertracing/jaeger-client-python
+    * `OpenTelemetry SDK <https://opentelemetry-python.readthedocs.io/>`_ with OTLP exporter
 
 To control behavior of tracing subsystem, you can use following environment variables:
 
     * ``GLUETOOL_TRACING_DISABLE`` - when set to anything, tracing won't be enabled even when a client
       is available.
     * ``GLUETOOL_TRACING_SERVICE_NAME`` - given string is used to name the trace produced by ``gluetool`` execution.
-    * ``GLUETOOL_TRACING_REPORTING_HOST`` - given string represents a hostname where service, capturing
-        traces, listens.
-    * ``GLUETOOL_TRACING_REPORTING_PORT`` - given integer represents a port number where service, capturing
-        traces, listens.
+    * ``GLUETOOL_TRACING_REPORTING_ENDPOINT`` - OTLP endpoint URL (e.g. ``http://localhost:4317``).
 """
 
 import datetime
 import os
 import threading
-import time
 
 from six import iteritems
 
 from .log import Logging
-from .result import Result
 
 try:
     if os.getenv('GLUETOOL_TRACING_DISABLE'):
         raise ImportError('Tracing is disabled')
 
-    import jaeger_client as tracing_client
+    from opentelemetry import trace
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor
+    from opentelemetry.sdk.resources import Resource
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 
-except (ImportError, AttributeError):
-    tracing_client = None
+    HAS_TRACING = True
+
+except ImportError:
+    HAS_TRACING = False
 
 # Type annotations
 # pylint: disable=unused-import, wrong-import-order
@@ -72,18 +73,14 @@ from typing import cast, Any, Dict, Generator, Iterator, List, Optional, Union  
 
 from .log import ContextAdapter  # noqa
 
-TracingClientType = Any  # pylint: disable=invalid-name
-
 
 TRACING_DISABLE_ENVVAR = 'GLUETOOL_TRACING_DISABLE'
 TRACING_SERVICE_NAME_ENVVAR = 'GLUETOOL_TRACING_SERVICE_NAME'
-TRACING_REPORTING_HOST_ENVVAR = 'GLUETOOL_TRACING_REPORTING_HOST'
-TRACING_REPORTING_PORT_ENVVAR = 'GLUETOOL_TRACING_REPORTING_PORT'
+TRACING_REPORTING_ENDPOINT_ENVVAR = 'GLUETOOL_TRACING_REPORTING_ENDPOINT'
 TRACING_FLUSH_TIMEOUT_ENVVAR = 'GLUETOOL_TRACING_FLUSH_TIMEOUT'
 
 DEFAULT_TRACING_SERVICE_NAME = 'gluetool'
-DEFAULT_TRACING_REPORTING_HOST = '127.0.0.1'
-DEFAULT_TRACING_REPORTING_PORT = 5775
+DEFAULT_TRACING_REPORTING_ENDPOINT = 'http://localhost:4317'
 DEFAULT_TRACING_FLUSH_TIMEOUT = 30
 
 
@@ -93,54 +90,39 @@ class Tracer(object):
 
     :param str service_name: name to apply to all traces produced by this tracer.
     :param ContextAdapter logger: logger to use for logging.
-    :param str reporting_host: address to which tracer should submit traces.
-    :param int reporting_port: port to which tracer should submit tracers.
+    :param str endpoint: OTLP endpoint URL to which tracer should submit traces.
     """
     # pylint: disable=too-few-public-methods
 
-    TRACER: Optional[TracingClientType] = None
+    TRACER: Optional[Any] = None
+    _PROVIDER: Optional[Any] = None
 
-    # pylint: disable=too-many-arguments
     def __init__(self,
                  service_name: Optional[str] = None,
                  logger: Optional[ContextAdapter] = None,
-                 reporting_host: Optional[str] = None,
-                 reporting_port: Optional[int] = None) -> None:
+                 endpoint: Optional[str] = None) -> None:
 
-        if not tracing_client or os.getenv(TRACING_DISABLE_ENVVAR):
+        if not HAS_TRACING or os.getenv(TRACING_DISABLE_ENVVAR):
             return
 
         self.logger = logger or Logging.get_logger()
 
-        if not service_name:
-            service_name = os.getenv(TRACING_SERVICE_NAME_ENVVAR, default=DEFAULT_TRACING_SERVICE_NAME)
+        resolved_service_name: str = service_name or os.getenv(
+            TRACING_SERVICE_NAME_ENVVAR, DEFAULT_TRACING_SERVICE_NAME
+        ) or DEFAULT_TRACING_SERVICE_NAME
 
-        if not reporting_host:
-            reporting_host = os.getenv(TRACING_REPORTING_HOST_ENVVAR, default=DEFAULT_TRACING_REPORTING_HOST)
+        resolved_endpoint: str = endpoint or os.getenv(
+            TRACING_REPORTING_ENDPOINT_ENVVAR, DEFAULT_TRACING_REPORTING_ENDPOINT
+        ) or DEFAULT_TRACING_REPORTING_ENDPOINT
 
-        if not reporting_port:
-            # pylint: disable=bad-option-value,invalid-envvar-default
-            reporting_port = int(os.getenv(TRACING_REPORTING_PORT_ENVVAR, default=DEFAULT_TRACING_REPORTING_PORT))
+        resource = Resource.create({'service.name': resolved_service_name})
+        provider = TracerProvider(resource=resource)
+        exporter = OTLPSpanExporter(endpoint=resolved_endpoint, insecure=True)
+        provider.add_span_processor(BatchSpanProcessor(exporter))
+        trace.set_tracer_provider(provider)
 
-        config = tracing_client.Config(
-            config={
-                # Using `const` sampler - the same sampling decission for all spans,
-                # and that decision is "record" (because `param == 1`).
-                'sampler': {
-                    'type': 'const',
-                    'param': 1
-                },
-                'local_agent': {
-                    'reporting_host': reporting_host,
-                    'reporting_port': reporting_port
-                },
-                'logging': True
-            },
-            service_name=service_name,
-            validate=True
-        )
-
-        Tracer.TRACER = config.initialize_tracer()
+        Tracer._PROVIDER = provider
+        Tracer.TRACER = trace.get_tracer(resolved_service_name)
 
     def close(self, flush_timeout: Optional[int] = None, logger: Optional[ContextAdapter] = None) -> None:
         """
@@ -151,31 +133,19 @@ class Tracer(object):
         :param ContextAdapter logger: logger to use for logging.
         """.format(TRACING_FLUSH_TIMEOUT_ENVVAR, DEFAULT_TRACING_FLUSH_TIMEOUT)
 
-        if not Tracer.TRACER:
+        if not Tracer._PROVIDER:
             return
 
         logger = logger or self.logger
 
         logger.info('Flushing tracing data')
 
-        # Make pylint happy about circular imports by not using global import.
-        # pylint: disable=cyclic-import
-        from .utils import wait
-
         if not flush_timeout:
             # pylint: disable=bad-option-value,invalid-envvar-default
             flush_timeout = int(os.getenv(TRACING_FLUSH_TIMEOUT_ENVVAR, default=DEFAULT_TRACING_FLUSH_TIMEOUT))
 
-        # yield to IOLoop to flush the spans - https://github.com/jaegertracing/jaeger-client-python/issues/50
-        time.sleep(2)
-
-        future = Tracer.TRACER.close()
-
-        def _check_flush() -> Result[bool, str]:
-
-            return Result.Ok(True) if future.done() else Result.Error('flush pending')
-
-        wait('tracing flush', _check_flush, timeout=flush_timeout, tick=2, logger=logger)
+        Tracer._PROVIDER.force_flush(timeout_millis=flush_timeout * 1000)
+        Tracer._PROVIDER.shutdown()
 
 
 class Action(object):
@@ -287,14 +257,15 @@ class Action(object):
 
         self.tags = tags or {}
 
-        if Tracer.TRACER:
-            if parent:
-                parent_span = parent.span
-
+        if Tracer.TRACER and HAS_TRACING:
+            if parent and parent.span:
+                parent_ctx = trace.set_span_in_context(parent.span)
             else:
-                parent_span = None
+                parent_ctx = None
 
-            self.span: Any = Tracer.TRACER.start_span(label, child_of=parent_span, tags=tags)
+            self.span: Any = Tracer.TRACER.start_span(
+                label, context=parent_ctx, attributes=tags
+            )
 
         else:
             self.span = None
@@ -323,7 +294,7 @@ class Action(object):
         Action._drop_action(self)
 
         if self.span:
-            self.span.finish()
+            self.span.end()
 
         self.logger.debug("action '{}', child of '{}', with span '{}', finished at {}".format(
             self.label,
@@ -345,7 +316,7 @@ class Action(object):
         self.tags[name] = value
 
         if self.span:
-            self.span.set_tag(name, value)
+            self.span.set_attribute(name, value)
 
     def set_tags(self, tags: Dict[str, Any]) -> None:
 
