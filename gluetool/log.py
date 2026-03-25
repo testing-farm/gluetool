@@ -1132,17 +1132,17 @@ class Logging(object):
         assert Logging.stderr_handler is not None
         logger.addHandler(Logging.stderr_handler)
 
-        # Extra handling for Jaeger logger:
-        # - replace it with a context adapter to keep track of what's being done by Jaeger code,
-        # - patch its `info` with `debug` - Jaeger is logging things with INFO severity, which spoils
+        # Extra handling for OpenTelemetry logger:
+        # - replace it with a context adapter to keep track of what's being done by tracing code,
+        # - patch its `info` with `debug` - OpenTelemetry logs with INFO severity, which spoils
         #   our output, DEBUG is perfectly fine for us.
-        jaeger_logger = logging.getLogger('jaeger_tracing')
+        otel_logger = logging.getLogger('opentelemetry')
 
-        if logger == jaeger_logger:
-            jaeger_context_adapter = PackageAdapter(Logging.get_logger(), 'tracing')
+        if logger == otel_logger:
+            otel_context_adapter = PackageAdapter(Logging.get_logger(), 'tracing')
 
             for attr in ('debug', 'info', 'warning', 'error', 'exception'):
-                setattr(logger, attr, getattr(jaeger_context_adapter, attr))
+                setattr(logger, attr, getattr(otel_context_adapter, attr))
 
             logger.info = logger.debug  # type: ignore
 
@@ -1172,7 +1172,7 @@ class Logging(object):
 
     OUR_LOGGERS = (
         logging.getLogger('gluetool'),
-        logging.getLogger('jaeger_tracing'),
+        logging.getLogger('opentelemetry'),
         logging.getLogger('urllib3')
     )
 
