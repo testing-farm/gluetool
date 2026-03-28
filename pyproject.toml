@@ -42,7 +42,6 @@ include = [
   "assets/html-log/semantic.min.js",
   "gluetool_modules/__init__.py",
   "gluetool_modules/bash_completion.py",
-  "gluetool_modules/dep_list.py",
   "gluetool_modules/yaml_pipeline.py"
 ]
 
@@ -67,7 +66,6 @@ urlnormalizer = "*"
 # depending on extended argument annotations.
 mypy-extensions = "*"
 zipp = "*"
-packaging = "*"
 MarkupSafe = "*"
 attrs = "*"
 cattrs = "*"
@@ -102,7 +100,6 @@ gluetool-html-log = "gluetool.html_log:main"
 
 [tool.poetry.plugins."gluetool.modules"]
 ".bash_completion" = "gluetool_modules.bash_completion:BashCompletion"
-".dep_list" = "gluetool_modules.dep_list:DepList"
 ".yaml_pipeline" = "gluetool_modules.yaml_pipeline:YAMLPipeline"
 
 [tool.poetry-dynamic-versioning]

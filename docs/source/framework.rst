@@ -122,10 +122,6 @@ Shared function names are unique, but different modules can expose the same shar
 
 Shared functions can have arguments and they behave the same way as ordinary Python functions.
 
-  .. note::
-
-     The documentation of the shared function is generated automatically from the docstring of the method and displayed in the help of the module. As an example, see the help of the ``dep-list`` module by running ``gluetool dep-list -h``. You'll see the module provides ``prepare_dependencies`` shared function.
-
 Uniform Logging
 ^^^^^^^^^^^^^^^
 
