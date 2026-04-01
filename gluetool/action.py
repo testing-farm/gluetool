@@ -42,6 +42,10 @@ To control behavior of tracing subsystem, you can use following environment vari
       is available.
     * ``GLUETOOL_TRACING_SERVICE_NAME`` - given string is used to name the trace produced by ``gluetool`` execution.
     * ``GLUETOOL_TRACING_REPORTING_ENDPOINT`` - OTLP endpoint URL (e.g. ``http://localhost:4317``).
+    * ``GLUETOOL_TRACING_INSECURE`` - controls whether the gRPC connection uses TLS. The connection
+      is insecure (plaintext) by default. Set to ``0``, ``false``, or ``no`` to enable TLS.
+    * ``GLUETOOL_TRACING_TLS_CERT`` - path to a custom CA certificate bundle (PEM) for TLS connections.
+      Only used when ``GLUETOOL_TRACING_INSECURE`` is disabled.
 """
 
 import datetime
@@ -56,6 +60,7 @@ try:
     if os.getenv('GLUETOOL_TRACING_DISABLE'):
         raise ImportError('Tracing is disabled')
 
+    import grpc
     from opentelemetry import trace
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -78,6 +83,8 @@ TRACING_DISABLE_ENVVAR = 'GLUETOOL_TRACING_DISABLE'
 TRACING_SERVICE_NAME_ENVVAR = 'GLUETOOL_TRACING_SERVICE_NAME'
 TRACING_REPORTING_ENDPOINT_ENVVAR = 'GLUETOOL_TRACING_REPORTING_ENDPOINT'
 TRACING_FLUSH_TIMEOUT_ENVVAR = 'GLUETOOL_TRACING_FLUSH_TIMEOUT'
+TRACING_INSECURE_ENVVAR = 'GLUETOOL_TRACING_INSECURE'
+TRACING_TLS_CERT_ENVVAR = 'GLUETOOL_TRACING_TLS_CERT'
 
 DEFAULT_TRACING_SERVICE_NAME = 'gluetool'
 DEFAULT_TRACING_REPORTING_ENDPOINT = 'http://localhost:4317'
@@ -115,9 +122,20 @@ class Tracer(object):
             TRACING_REPORTING_ENDPOINT_ENVVAR, DEFAULT_TRACING_REPORTING_ENDPOINT
         ) or DEFAULT_TRACING_REPORTING_ENDPOINT
 
+        insecure = os.getenv(TRACING_INSECURE_ENVVAR, '').lower() not in ('0', 'false', 'no')
+        tls_cert = os.getenv(TRACING_TLS_CERT_ENVVAR)
+
         resource = Resource.create({'service.name': resolved_service_name})
         provider = TracerProvider(resource=resource)
-        exporter = OTLPSpanExporter(endpoint=resolved_endpoint, insecure=True)
+
+        if insecure:
+            exporter = OTLPSpanExporter(endpoint=resolved_endpoint, insecure=True)
+        elif tls_cert:
+            with open(tls_cert, 'rb') as f:
+                credentials = grpc.ssl_channel_credentials(root_certificates=f.read())
+            exporter = OTLPSpanExporter(endpoint=resolved_endpoint, credentials=credentials)
+        else:
+            exporter = OTLPSpanExporter(endpoint=resolved_endpoint)
         provider.add_span_processor(BatchSpanProcessor(exporter))
         trace.set_tracer_provider(provider)
 
