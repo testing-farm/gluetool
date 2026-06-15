@@ -44,6 +44,36 @@ DEFAULT_GLUETOOL_CONFIG_PATHS = [
 
 DEFAULT_SIGTERM_TIMEOUT = 60
 
+# Environment variable overriding the time (in seconds) ``gluetool`` waits for a child process to exit after
+# sending it ``SIGTERM`` before resorting to ``SIGKILL``.
+SIGTERM_TIMEOUT_ENVVAR = 'GLUETOOL_SIGTERM_TIMEOUT'
+
+
+def sigterm_timeout(glue: Optional['gluetool.glue.Glue'] = None) -> int:
+    """
+    Return the time, in seconds, ``gluetool`` waits for a child process to exit after sending it ``SIGTERM``
+    before resorting to ``SIGKILL``.
+
+    The value is resolved with the following precedence:
+
+    1. the ``sigterm-timeout`` option (set on the command line or in a configuration file),
+    2. the :py:data:`SIGTERM_TIMEOUT_ENVVAR` environment variable,
+    3. :py:data:`DEFAULT_SIGTERM_TIMEOUT`.
+
+    :param glue: ``Glue`` instance to read the ``sigterm-timeout`` option from. When not provided, the option
+        is skipped and the value is resolved from the environment variable or the default.
+    """
+
+    if glue is not None:
+        option = glue.option('sigterm-timeout')
+        if option is not None:
+            return cast(int, option)
+
+    if SIGTERM_TIMEOUT_ENVVAR in os.environ:
+        return int(os.environ[SIGTERM_TIMEOUT_ENVVAR])
+
+    return DEFAULT_SIGTERM_TIMEOUT
+
 
 def handle_exc(func: Callable[..., Any]) -> Callable[..., Any]:
 
@@ -305,7 +335,7 @@ Will try to submit it to Sentry but giving up on everything else.
             child.terminate()
 
             try:
-                child.wait(timeout=DEFAULT_SIGTERM_TIMEOUT)
+                child.wait(timeout=sigterm_timeout(Glue))
 
             except psutil.TimeoutExpired:
                 Glue.warn("Sending SIGKILL to child process '{}' (PID {})".format(child.name(), child.pid))

@@ -175,3 +175,69 @@ def test_signal(monkeypatch, log, tested_signal, exception, terminate_process_tr
     assert log.match(levelno=logging.WARNING, message=warnmsg)
     assert log.match(levelno=logging.DEBUG, message='Exiting with status 0')
     assert log.match(levelno=logging.INFO, message='gluetool some-version')
+
+
+def test_sigterm_timeout_default(monkeypatch):
+    monkeypatch.delenv(gluetool.tool.SIGTERM_TIMEOUT_ENVVAR, raising=False)
+
+    assert gluetool.tool.sigterm_timeout() == gluetool.tool.DEFAULT_SIGTERM_TIMEOUT
+
+
+@pytest.mark.parametrize('value,expected', [
+    ('0', 0),
+    ('1', 1),
+    ('120', 120),
+], ids=['zero', 'one', 'custom'])
+def test_sigterm_timeout_envvar(monkeypatch, value, expected):
+    monkeypatch.setenv(gluetool.tool.SIGTERM_TIMEOUT_ENVVAR, value)
+
+    assert gluetool.tool.sigterm_timeout() == expected
+
+
+def test_sigterm_timeout_envvar_invalid(monkeypatch):
+    monkeypatch.setenv(gluetool.tool.SIGTERM_TIMEOUT_ENVVAR, 'not-a-number')
+
+    with pytest.raises(ValueError):
+        gluetool.tool.sigterm_timeout()
+
+
+def test_sigterm_timeout_option_overrides_envvar(monkeypatch):
+    # The `sigterm-timeout` option (command line or configuration file) takes precedence over the env variable.
+    monkeypatch.setenv(gluetool.tool.SIGTERM_TIMEOUT_ENVVAR, '30')
+
+    glue = MagicMock()
+    glue.option = MagicMock(return_value=90)
+
+    assert gluetool.tool.sigterm_timeout(glue) == 90
+    glue.option.assert_called_once_with('sigterm-timeout')
+
+
+def test_sigterm_timeout_option_unset_falls_back_to_envvar(monkeypatch):
+    # When the option is not set, the env variable is used.
+    monkeypatch.setenv(gluetool.tool.SIGTERM_TIMEOUT_ENVVAR, '30')
+
+    glue = MagicMock()
+    glue.option = MagicMock(return_value=None)
+
+    assert gluetool.tool.sigterm_timeout(glue) == 30
+
+
+def test_sigterm_timeout_option_unset_falls_back_to_default(monkeypatch):
+    # When neither the option nor the env variable is set, the default is used.
+    monkeypatch.delenv(gluetool.tool.SIGTERM_TIMEOUT_ENVVAR, raising=False)
+
+    glue = MagicMock()
+    glue.option = MagicMock(return_value=None)
+
+    assert gluetool.tool.sigterm_timeout(glue) == gluetool.tool.DEFAULT_SIGTERM_TIMEOUT
+
+
+def test_sigterm_timeout_option_from_cmdline(monkeypatch):
+    # The `sigterm-timeout` option is wired into the command-line parser and parsed as an integer.
+    monkeypatch.delenv(gluetool.tool.SIGTERM_TIMEOUT_ENVVAR, raising=False)
+
+    glue = NonLoadingGlue()
+    glue._parse_args(['--sigterm-timeout', '120'])
+
+    assert glue.option('sigterm-timeout') == 120
+    assert gluetool.tool.sigterm_timeout(glue) == 120

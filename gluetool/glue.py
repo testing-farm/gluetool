@@ -1788,6 +1788,15 @@ class Glue(Configurable):
                 'action': 'store_true',
                 'default': False
             },
+            'sigterm-timeout': {
+                'help': """
+                        Time, in seconds, to wait for a child process to exit after sending it ``SIGTERM``,
+                        before resorting to ``SIGKILL``. Takes precedence over the ``GLUETOOL_SIGTERM_TIMEOUT``
+                        environment variable (Default: 60).
+                        """,
+                'type': int,
+                'default': None
+            },
         }),
         ('Output control', {
             ('c', 'colors'): {
@@ -2510,6 +2519,7 @@ class Glue(Configurable):
         * GLUETOOL_TRACING_SERVICE_NAME (string) - name of the trace produced by tool execution
         * GLUETOOL_TRACING_REPORTING_HOST (string) - a hostname where tracing collector listens
         * GLUETOOL_TRACING_REPORTING_PORT (int) - a port on which tracing collector listens
+        * GLUETOOL_SIGTERM_TIMEOUT (int) - seconds to wait for a child to exit after SIGTERM before SIGKILL
         """).format(module_dirs, data_dirs, module_config_dirs)
 
         self._parse_args(args,
