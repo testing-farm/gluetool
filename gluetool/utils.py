@@ -38,13 +38,13 @@ import cattrs.strategies
 from .glue import GlueError, SoftGlueError, GlueCommandError
 from .result import Result
 from .log import Logging, ContextAdapter, PackageAdapter, LoggerMixin, BlobLogger, Topic, \
-    log_blob, log_dict, print_wrapper
+    log_blob, log_dict
 
 # Type annotations
 # pylint: disable=unused-import, wrong-import-order
 from typing import IO, cast, overload  # noqa
-from typing import (Any, Callable, Deque, Dict, List, Optional, Pattern, Tuple, TypeVar, Union, Generic, Type,
-                    TYPE_CHECKING)  # noqa
+from typing import (Any, Callable, Deque, Dict, Iterator, List, Optional, Pattern, Tuple, TypeVar, Union, Generic,
+                    Type, TYPE_CHECKING)  # noqa
 from .log import LoggingFunctionType  # noqa
 
 if TYPE_CHECKING:
@@ -845,6 +845,129 @@ def fetch_url(url: str,
     return response, response.text
 
 
+# ``requests()`` is used by several threads at once, therefore it must not swap process-wide state like
+# ``sys.stdout`` or attributes of ``requests`` module. ``http_client`` debugging is the only global switch
+# left, and it is reference-counted: the first active context turns it on, the last one turns it off.
+_HTTP_CLIENT_DEBUG_LOCK = threading.Lock()
+_HTTP_CLIENT_DEBUG_USERS = 0
+_HTTP_CLIENT_ORIGINAL_PRINT: Optional[Callable[..., None]] = None
+
+# Each thread keeps a stack of loggers of its active ``requests()`` contexts.
+_HTTP_CLIENT_LOGGERS = threading.local()
+
+
+def _http_client_print(*args: Any, **_kwargs: Any) -> None:
+
+    """
+    Replacement of ``print`` in ``http_client`` module, which uses it to emit its debugging output.
+    The output is sent to the logger of the innermost ``requests()`` context of the calling thread,
+    or dropped when the thread has none.
+    """
+
+    loggers = getattr(_HTTP_CLIENT_LOGGERS, 'stack', None)
+
+    if not loggers:
+        return
+
+    message = ' '.join(str(arg) for arg in args)
+
+    for line in message.splitlines():
+        loggers[-1].debug(line)
+
+
+@contextlib.contextmanager
+def _http_client_debugging(logger: ContextAdapter) -> Iterator[None]:
+
+    """
+    Enable ``http_client`` debugging, and send its output produced by the calling thread to the given logger.
+    """
+
+    # pylint: disable=global-statement
+    global _HTTP_CLIENT_DEBUG_USERS, _HTTP_CLIENT_ORIGINAL_PRINT
+
+    with _HTTP_CLIENT_DEBUG_LOCK:
+        if _HTTP_CLIENT_DEBUG_USERS == 0:
+            _HTTP_CLIENT_ORIGINAL_PRINT = getattr(http_client, 'print', None)
+
+            http_client.print = _http_client_print  # type: ignore
+            http_client.HTTPConnection.debuglevel = 1  # type: ignore
+
+        _HTTP_CLIENT_DEBUG_USERS += 1
+
+    if not hasattr(_HTTP_CLIENT_LOGGERS, 'stack'):
+        _HTTP_CLIENT_LOGGERS.stack = []
+
+    _HTTP_CLIENT_LOGGERS.stack.append(logger)
+
+    try:
+        yield
+
+    finally:
+        _HTTP_CLIENT_LOGGERS.stack.pop()
+
+        with _HTTP_CLIENT_DEBUG_LOCK:
+            _HTTP_CLIENT_DEBUG_USERS -= 1
+
+            if _HTTP_CLIENT_DEBUG_USERS == 0:
+                http_client.HTTPConnection.debuglevel = 0  # type: ignore
+
+                # ``http_client`` has no ``print`` of its own by default, it uses the builtin one.
+                if _HTTP_CLIENT_ORIGINAL_PRINT is None:
+                    del http_client.print  # type: ignore
+
+                else:
+                    http_client.print = _HTTP_CLIENT_ORIGINAL_PRINT  # type: ignore
+
+
+class _VerboseRequests(object):
+
+    """
+    Proxy of :py:mod:`requests` module, yielded by :py:func:`requests`. Request methods (``get``, ``post``, ...)
+    log content of responses they return, everything else is taken from :py:mod:`requests` module.
+    """
+
+    def __init__(self, logger: ContextAdapter) -> None:
+
+        self._logger = logger
+
+    def _verbose_request(self, method_name: str, *args: Any, **kwargs: Any) -> Any:
+
+        # Look the method up when it's called, to respect any patching of ``requests`` module done by tests.
+        ret = getattr(original_requests, method_name)(*args, **kwargs)
+
+        log_blob(self._logger.debug, 'response content', ret.text)
+
+        return ret
+
+    def head(self, *args: Any, **kwargs: Any) -> Any:
+
+        return self._verbose_request('head', *args, **kwargs)
+
+    def get(self, *args: Any, **kwargs: Any) -> Any:
+
+        return self._verbose_request('get', *args, **kwargs)
+
+    def post(self, *args: Any, **kwargs: Any) -> Any:
+
+        return self._verbose_request('post', *args, **kwargs)
+
+    def put(self, *args: Any, **kwargs: Any) -> Any:
+
+        return self._verbose_request('put', *args, **kwargs)
+
+    def patch(self, *args: Any, **kwargs: Any) -> Any:
+
+        return self._verbose_request('patch', *args, **kwargs)
+
+    def delete(self, *args: Any, **kwargs: Any) -> Any:
+
+        return self._verbose_request('delete', *args, **kwargs)
+
+    def __getattr__(self, name: str) -> Any:
+
+        return getattr(original_requests, name)
+
+
 @contextlib.contextmanager
 def requests(logger: Optional[ContextAdapter] = None) -> Any:
 
@@ -852,15 +975,15 @@ def requests(logger: Optional[ContextAdapter] = None) -> Any:
     Wrap :py:mod:`requests` with few layers providing us with the logging and better insight into
     what has been happening when ``requests`` did their job.
 
-    Used as a context manager, yields a patched ``requests`` module. As long as inside the context,
+    Used as a context manager, yields a proxy of ``requests`` module. As long as inside the context,
     detailed information about HTTP traffic are logged via given logger.
 
     .. note::
 
-       The original ``requests`` library is returned, with slight modifications for better integration
-       with ``gluetool`` logging facilities. Each and every ``requests`` API feature is available
-       and , hopefully, enhancements applied by this wrapper wouldn't interact with ``requests``
-       functionality.
+       Every ``requests`` API feature is available through the proxy. Request methods - ``head``, ``get``,
+       ``post``, ``put``, ``patch`` and ``delete`` - log content of responses as well. ``http_client``
+       debugging output is logged only when produced by the thread that entered the context, which makes
+       the wrapper safe to use from multiple threads at once.
 
     .. code-block:: python
 
@@ -873,57 +996,15 @@ def requests(logger: Optional[ContextAdapter] = None) -> Any:
            ...
 
     :param logger: used for logging.
-    :returns: :py:mod:`requests` module.
+    :returns: proxy of :py:mod:`requests` module.
     """
 
-    # Enable http_client debugging. It's being used underneath ``requests`` and ``urllib3``,
-    # but it's stupid - uses "print" instead of a logger, therefore we have to capture it
-    # and disable debug logging when leaving the context.
+    # ``http_client`` is used underneath ``requests`` and ``urllib3``, but it's stupid - uses "print"
+    # instead of a logger, therefore we have to capture its debugging output.
     logger = logger or Logging.get_logger()
 
-    http_client_logger = PackageAdapter(logger, 'http_client')
-    http_client.HTTPConnection.debuglevel = 1  # type: ignore
-
-    # Start capturing ``print`` statements - they are used to provide debug messages, therefore
-    # using ``debug`` level.
-    with print_wrapper(log_fn=http_client_logger.debug):
-        # To log responses and their content, we must take a look at ``Response`` instance
-        # returned by several entry methods (``get``, ``post``, ...). To do that, we have
-        # a simple wrapper function.
-
-        # ``original_method`` is the actual ``requests.foo`` (``get``, ``post``, ...), wrapper
-        # calls it to do the job, and logs response when it's done.
-        def _verbose_request(original_method: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
-
-            ret = original_method(*args, **kwargs)
-
-            assert logger is not None
-            log_blob(logger.debug,
-                     'response content',
-                     ret.text)
-
-            return ret
-
-        # gather the original methods...
-        methods = {
-            method_name: getattr(original_requests, method_name)
-            for method_name in ('head', 'get', 'post', 'put', 'patch', 'delete')
-        }
-
-        # ... and replace them with our wrapper, giving it the original method as the first argument
-        for method_name, original_method in iteritems(methods):
-            setattr(original_requests, method_name, functools.partial(_verbose_request, original_method))
-
-        try:
-            yield original_requests
-
-        finally:
-            # put original methods back...
-            for method_name, original_method in iteritems(methods):
-                setattr(original_requests, method_name, original_method)
-
-            # ... and disable http_client debugging
-            http_client.HTTPConnection.debuglevel = 0  # type: ignore
+    with _http_client_debugging(PackageAdapter(logger, 'http_client')):
+        yield _VerboseRequests(logger)
 
 
 def treat_url(url: str, logger: Optional[ContextAdapter] = None) -> str:
